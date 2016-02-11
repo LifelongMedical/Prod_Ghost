@@ -14,5 +14,3 @@ CREATE TABLE [dwh].[data_sp_patient_survey]
 [created] [datetime] NULL
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 GO
-ALTER TABLE [dwh].[data_sp_patient_survey] ADD CONSTRAINT [FK__data_sp_p__enc_a__02F57FCE] FOREIGN KEY ([enc_appt_key]) REFERENCES [dwh].[data_appointment] ([enc_appt_key])
-GO

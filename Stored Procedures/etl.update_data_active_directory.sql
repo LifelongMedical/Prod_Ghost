@@ -15,9 +15,14 @@ AS
 
 
 
-
+--Prevents row counts returned from SELECT statement slowing down the query
 SET NOCOUNT ON
+
+--Allow for "Dirty Reads"
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+
+
 /* AD is limited to send 1000 records in one batch. to work around this limit we loop through the alphabet. */
 
 DECLARE @cmdstr varchar (255)

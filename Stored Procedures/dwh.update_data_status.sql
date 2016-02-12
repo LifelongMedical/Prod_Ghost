@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -21,7 +22,7 @@ AS
 
         IF OBJECT_ID('dwh.data_status') IS NOT NULL
             DROP TABLE dwh.data_status; 
-
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
         DECLARE @build_dt_start VARCHAR(8) ,
             @build_dt_end VARCHAR(8);

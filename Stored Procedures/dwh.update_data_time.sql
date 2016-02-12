@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -9,7 +10,7 @@ AS
 begin
         IF OBJECT_ID('dwh.data_time') IS NOT NULL
             DROP TABLE dwh.data_time;
-
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
 SELECT  ISNULL(CAST([PK_Date] AS DATETIME)  ,'') AS PK_datetime,
         ISNULL(CAST(PK_Date AS DATE) ,'')  AS PK_date,

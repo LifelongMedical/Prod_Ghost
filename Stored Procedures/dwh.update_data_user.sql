@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -20,7 +21,7 @@ AS
         SET ANSI_NULLS ON;
         SET QUOTED_IDENTIFIER ON;
 
-
+        SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
         IF OBJECT_ID('dwh.data_user') IS NOT NULL
             DROP TABLE dwh.data_user;
 
@@ -146,6 +147,52 @@ AS
                     process.last_name ,
                     process.FullName ,
                     process.provider_name ,
+                    IIF(CHARINDEX(' ',
+                                  IIF(CHARINDEX(',', process.provider_name) > 0, LTRIM(SUBSTRING(process.provider_name,
+                                                                                                 1,
+                                                                                                 CHARINDEX(',',
+                                                                                                        process.provider_name)
+                                                                                                 - 1)), 'Failed')) > 0, SUBSTRING(IIF(CHARINDEX(',',
+                                                                                                        process.provider_name) > 0, LTRIM(SUBSTRING(process.provider_name,
+                                                                                                        1,
+                                                                                                        CHARINDEX(',',
+                                                                                                        process.provider_name)
+                                                                                                        - 1)), 'Failed'),
+                                                                                                        1,
+                                                                                                        CHARINDEX(' ',
+                                                                                                        IIF(CHARINDEX(',',
+                                                                                                        process.provider_name) > 0, LTRIM(SUBSTRING(process.provider_name,
+                                                                                                        1,
+                                                                                                        CHARINDEX(',',
+                                                                                                        process.provider_name)
+                                                                                                        - 1)), 'Failed'))
+                                                                                                        - 1), IIF(CHARINDEX(',',
+                                                                                                        process.provider_name) > 0, LTRIM(SUBSTRING(process.provider_name,
+                                                                                                        1,
+                                                                                                        CHARINDEX(',',
+                                                                                                        process.provider_name)
+                                                                                                        - 1)), 'Failed')) AS LastName_cleaned ,
+                    IIF(CHARINDEX(' ',
+                                  IIF(CHARINDEX(',', process.provider_name) > 0, LTRIM(SUBSTRING(process.provider_name,
+                                                                                                 CHARINDEX(',',
+                                                                                                        process.provider_name)
+                                                                                                 + 1, 8000)), 'Failed')) > 0, SUBSTRING(IIF(CHARINDEX(',',
+                                                                                                        process.provider_name) > 0, LTRIM(SUBSTRING(process.provider_name,
+                                                                                                        CHARINDEX(',',
+                                                                                                        process.provider_name)
+                                                                                                        + 1, 8000)), 'Failed'),
+                                                                                                        1,
+                                                                                                        CHARINDEX(' ',
+                                                                                                        IIF(CHARINDEX(',',
+                                                                                                        process.provider_name) > 0, LTRIM(SUBSTRING(process.provider_name,
+                                                                                                        CHARINDEX(',',
+                                                                                                        process.provider_name)
+                                                                                                        + 1, 8000)), 'Failed'))
+                                                                                                        - 1), IIF(CHARINDEX(',',
+                                                                                                        process.provider_name) > 0, LTRIM(SUBSTRING(process.provider_name,
+                                                                                                        CHARINDEX(',',
+                                                                                                        process.provider_name)
+                                                                                                        + 1, 8000)), 'Failed')) AS FirstName_cleaned ,
                     process.resource_name ,
                     process.degree ,
                     process.delete_ind ,
@@ -193,7 +240,7 @@ AS
                     ar.[Job Title] hr_job_title ,
                     ar.[Location] AS hr_location_name ,
                     ar.[Location Code] AS hr_location_id ,
-                    ar.employee_key  as employee_key ,
+                    ar.employee_key AS employee_key ,
                     ROW_NUMBER() OVER ( PARTITION BY process.provider_id ORDER BY provider_id, resource_id, user_id ) AS unique_provider_id_flag ,
                     ROW_NUMBER() OVER ( PARTITION BY process.resource_id ORDER BY provider_id, resource_id, user_id ) AS unique_resource_id_flag ,
                     ROW_NUMBER() OVER ( PARTITION BY process.user_id ORDER BY provider_id, resource_id, user_id ) AS unique_user_id_flag
@@ -203,8 +250,10 @@ AS
                     LEFT JOIN enc3ms e3s ON process.provider_id = e3s.rendering_provider_id
                     LEFT JOIN enc6m e6 ON process.provider_id = e6.rendering_provider_id
                     LEFT JOIN enc12m e12 ON process.provider_id = e12.rendering_provider_id
-                    LEFT JOIN dwh.data_employee ar ON REPLACE(UPPER(LEFT(process.first_name,3)), '''', '') = REPLACE(UPPER(LEFT(ar.[Payroll First Name],3)), '''', '')
-                                                      AND REPLACE(UPPER(process.last_name), '''', '') = REPLACE(UPPER(ar.[Payroll Last Name]), '''', '');
+                    LEFT JOIN dwh.data_employee ar ON REPLACE(UPPER(LEFT(process.first_name, 3)), '''', '') = REPLACE(UPPER(LEFT(ar.[Payroll First Name],
+                                                                                                        3)), '''', '')
+                                                      AND REPLACE(UPPER(process.last_name), '''', '') = REPLACE(UPPER(ar.[Payroll Last Name]),
+                                                                                                        '''', '');
 
 		
 
@@ -213,37 +262,28 @@ AS
 		--So in order to do that Need to 
 
 
-		update dwh.data_user set dwh.data_user.employee_key = pd.employee_key 
-		
-		from (select 
-		
-		user_key,
-		case
-			when 
-			ROW_NUMBER() OVER ( PARTITION BY employee_key ORDER BY provider_id, resource_id, user_id ) > 1
-		then NULL else employee_key  end as employee_key
-				
-		
-		
-		FROM dwh.data_user  )  pd
-		where dwh.data_user.user_key = pd.user_key
+        UPDATE  dwh.data_user
+        SET     dwh.data_user.employee_key = pd.employee_key
+        FROM    ( SELECT    user_key ,
+                            CASE WHEN ROW_NUMBER() OVER ( PARTITION BY employee_key ORDER BY provider_id, resource_id, user_id ) > 1
+                                 THEN NULL
+                                 ELSE employee_key
+                            END AS employee_key
+                  FROM      dwh.data_user
+                ) pd
+        WHERE   dwh.data_user.user_key = pd.user_key;
 		
 	
 
-		update dwh.data_user set dwh.data_user.employee_key = pd.employee_key 
-		
-		from (select 
-		
-		user_key,
-		case
-			when 
-			employee_key is null then 10000+user_key
-		 else employee_key  end as employee_key
-				
-		
-		
-		FROM dwh.data_user  )  pd
-		where dwh.data_user.user_key = pd.user_key
+        UPDATE  dwh.data_user
+        SET     dwh.data_user.employee_key = pd.employee_key
+        FROM    ( SELECT    user_key ,
+                            CASE WHEN employee_key IS NULL THEN 10000 + user_key
+                                 ELSE employee_key
+                            END AS employee_key
+                  FROM      dwh.data_user
+                ) pd
+        WHERE   dwh.data_user.user_key = pd.user_key;
 		
 	
 

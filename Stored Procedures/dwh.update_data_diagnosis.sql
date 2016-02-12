@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -13,7 +14,7 @@ AS
 /****** Script for SelectTopNRows command from SSMS  ******/
 
 --Build Diagnoses DataMart
-
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
         DECLARE @build_dt_start VARCHAR(8) ,
             @build_dt_end VARCHAR(8) ,
             @Build_counter VARCHAR(8);

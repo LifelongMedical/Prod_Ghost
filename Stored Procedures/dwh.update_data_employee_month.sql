@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -15,7 +16,7 @@ AS
         SET NOCOUNT ON;
 
 
-		
+		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
         IF OBJECT_ID('dwh.data_employee_month') IS NOT NULL
             DROP TABLE dwh.data_employee_month;
 

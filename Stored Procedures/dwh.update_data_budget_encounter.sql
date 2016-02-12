@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -15,7 +16,7 @@ begin
     @cur_month VARCHAR(3) ,
     @pk_month DATE;
 
-
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
    SET @build_dt_start = '20150701';
    SET @build_dt_end = '20160630';
 

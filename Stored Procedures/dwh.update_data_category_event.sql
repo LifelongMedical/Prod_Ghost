@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -12,7 +13,7 @@ AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
 	-- interfering with SELECT statements.
-
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
         IF OBJECT_ID('dwh.data_category_event') IS NOT NULL
             DROP TABLE dwh.data_category_event;
 

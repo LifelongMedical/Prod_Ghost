@@ -4,6 +4,7 @@ CREATE TABLE [dwh].[data_schedule_slots]
 [slot_loc_key] [int] NULL,
 [category_key] [int] NULL,
 [resource_id] [uniqueidentifier] NULL,
+[provider_id] [uniqueidentifier] NULL,
 [location_id] [uniqueidentifier] NULL,
 [category_id] [uniqueidentifier] NULL,
 [appt_date] [date] NULL,

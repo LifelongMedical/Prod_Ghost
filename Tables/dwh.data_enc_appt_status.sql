@@ -10,6 +10,7 @@ CREATE TABLE [dwh].[data_enc_appt_status]
 [status_enc] [varchar] (12) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [status_appt_kept] [varchar] (14) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [status_cancel_reason] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[status_charges] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL
+[status_charges] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[status_pcpcrossbook] [varchar] (26) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL
 ) ON [PRIMARY]
 GO

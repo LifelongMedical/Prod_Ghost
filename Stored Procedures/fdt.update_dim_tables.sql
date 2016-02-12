@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -585,7 +586,8 @@ SELECT  [cat_event_key]
                 [status_enc] AS [Status of Enc] ,
                 [status_appt_kept] AS [Appt was Kept] ,
                 [status_cancel_reason] AS [Appt cancel reason],
-				[status_charges] as [Enc had charges]
+				[status_charges] as [Enc had charges],
+				[status_pcpcrossbook] AS [Can crossbook with PCP]
         INTO    fdt.[Dim Status Enc and Appt]
         FROM    [Prod_Ghost].[dwh].[data_enc_appt_status];
      

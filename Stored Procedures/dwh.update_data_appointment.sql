@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -11,6 +12,7 @@ CREATE PROCEDURE [dwh].[update_data_appointment]
 AS
     BEGIN
 
+        SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
 
 
@@ -312,9 +314,6 @@ link between appts and slots based on
        
 
         SELECT  d.* ,
-                
-				
-		
                 CASE WHEN ( d.appt_date IS NOT NULL
                             AND d.slot_time IS NOT NULL
                             AND d.appt_modify_time IS NOT NULL
@@ -343,7 +342,7 @@ link between appts and slots based on
                             AND DATEDIFF(MINUTE, d.appt_modify_time,
                                          CAST(CONCAT(CONVERT(VARCHAR(8), d.appt_date, 112), ' ',
                                                      SUBSTRING(d.slot_time, 1, 2), ':', SUBSTRING(d.slot_time, 3, 2),
-                                                     ':00') AS DATETIME)) > 48 * 60 
+                                                     ':00') AS DATETIME)) > 48 * 60
                           ) THEN 'Cancelled  > 48 Hrs before appt'
                      WHEN ISNULL(d.delete_ind, 'N') = 'Y'
                           AND ISNULL(d.resched_ind, 'N') = 'N' THEN 'Deleted'
@@ -460,20 +459,45 @@ link between appts and slots based on
                 END AS status_appt_kept ,
                 CASE WHEN ISNULL(m.mstr_list_item_desc, '') != '' THEN ( m.mstr_list_item_desc )
                      ELSE 'Unknown'
-                END AS status_cancel_reason,
-				CASE WHEN chg.source_id is not null THEN 'Has Charges'
+                END AS status_cancel_reason ,
+                CASE WHEN chg.source_id IS NOT NULL THEN 'Has Charges'
                      ELSE 'No Charges'
-                END AS status_charges
+                END AS status_charges ,
 
-
-
+				--Thinking about adding a crossbooking measure
+				--This would be an appointment that is booked with one provider when there are 
+				--either open slots
+				--That means checking if schedule slots has an [nbr_slots_open_final] =1 for the date and pcp of a patient being
+				--seen by someone other than their provider
+                CASE WHEN 
+						 
+						 --Appointment not booked with PCP
+                          ( d.appt_nbr IS NOT NULL
+                            AND d.pcp_id IS NOT NULL
+                            AND d.enc_rendering_id IS NOT NULL
+                            AND d.pcp_id != d.enc_rendering_id
+                          )
+                          AND
+						   --Appointment is available with PCP
+                          ( SELECT TOP 1
+                                    [nbr_slots_open_final]
+                            FROM    dwh.data_schedule_slots ss
+                            WHERE   d.pcp_id = ss.provider_id
+                                    AND d.appt_date = ss.appt_date
+                                    AND ss.[nbr_slots_open_final] = 1
+                          ) = 1 THEN 'PCP available for appt'
+                     ELSE 'PCP not available for appt'
+                END AS status_pcpcrossbook
         INTO    #appt_enc2
         FROM    #appt_enc d
                 LEFT JOIN [10.183.0.94].NGProd.dbo.[mstr_lists] m ON d.cancel_reason = m.mstr_list_item_id
-				LEFT JOIN  (select distinct source_id from  [10.183.0.94].NGProd.dbo.charges) chg on chg.source_id =d.enc_id
+                LEFT JOIN ( SELECT DISTINCT
+                                    source_id
+                            FROM    [10.183.0.94].NGProd.dbo.charges
+                          ) chg ON chg.source_id = d.enc_id;
 
 				
-        SELECT  ROW_NUMBER() OVER ( ORDER BY x1.status_appt , x2.status_appt_pcp , x3.status_appt_person , x4.status_appt_enc , x5.status_enc_appt , x6.status_enc_billable , x7.status_enc, x8.status_appt_kept, x9.status_cancel_reason, x10.status_charges ) AS enc_appt_comp_key ,
+        SELECT  ROW_NUMBER() OVER ( ORDER BY x1.status_appt , x2.status_appt_pcp , x3.status_appt_person , x4.status_appt_enc , x5.status_enc_appt , x6.status_enc_billable , x7.status_enc, x8.status_appt_kept, x9.status_cancel_reason, x10.status_charges, x11.status_pcpcrossbook ) AS enc_appt_comp_key ,
                 x1.status_appt ,
                 x2.status_appt_pcp ,
                 x3.status_appt_person ,
@@ -482,8 +506,9 @@ link between appts and slots based on
                 x6.status_enc_billable ,
                 x7.status_enc ,
                 x8.status_appt_kept ,
-                x9.status_cancel_reason,
-				x10.status_charges
+                x9.status_cancel_reason ,
+                x10.status_charges ,
+                x11.status_pcpcrossbook
         INTO    dwh.data_enc_appt_status
         FROM    ( SELECT DISTINCT
                             status_appt
@@ -521,10 +546,14 @@ link between appts and slots based on
                                     status_cancel_reason
                              FROM   #appt_enc2
                            ) x9
-						    CROSS JOIN ( SELECT DISTINCT
+                CROSS JOIN ( SELECT DISTINCT
                                     status_charges
                              FROM   #appt_enc2
-                           ) x10;
+                           ) x10
+                CROSS JOIN ( SELECT DISTINCT
+                                    status_pcpcrossbook
+                             FROM   #appt_enc2
+                           ) x11;
 
 
 
@@ -543,7 +572,8 @@ link between appts and slots based on
                                                         AND e.status_enc = d.status_enc
                                                         AND e.status_appt_kept = d.status_appt_kept
                                                         AND e.status_cancel_reason = d.status_cancel_reason
-														AND e.status_charges =d.status_charges;
+                                                        AND e.status_charges = d.status_charges
+                                                        AND e.status_pcpcrossbook = d.status_pcpcrossbook;
 			 
 	   			 
 					 

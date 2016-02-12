@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -38,7 +39,7 @@ SET  @dt_end = (SELECT
   --   SET  @dt_end =convert(varchar(8), DATEADD(d,180,cast(@dt_end as datetime)), 112)
     
   
-  --     SET @dt_start = '20100301';
+ --    SET @dt_start = '20100301';
 
 
   --      SET @dt_end = '20151201';
@@ -368,7 +369,7 @@ SET  @dt_end = (SELECT
 
 -- CHECK NEXT DAY AND LOOP FROM START
 
-
+--DROP TABLE dwh.data_schedule_slots
 /*
    
         CREATE TABLE dwh.data_schedule_slots
@@ -377,6 +378,7 @@ SET  @dt_end = (SELECT
                slot_loc_key int NULL,
 			   category_key int NULL ,
 			   resource_id UNIQUEIDENTIFIER NULL,
+			   provider_id UNIQUEIDENTIFIER NULL,
 	    	   location_id UNIQUEIDENTIFIER NULL,
      		   category_id UNIQUEIDENTIFIER NULL,
                appt_date DATE ,
@@ -403,6 +405,7 @@ SET  @dt_end = (SELECT
                   slot_loc_key ,
                   category_key ,
                   resource_id ,
+				  provider_id,
                   location_id ,
                   category_id ,
                   appt_date ,
@@ -420,6 +423,7 @@ SET  @dt_end = (SELECT
                         NULL AS slot_loc_key ,
                         NULL AS category_key ,
                         resource_id ,
+						NULL AS provider_id,
                         location_id ,
                         category_id ,
                         CAST(appt_date AS DATE) AS appt_date ,
@@ -446,6 +450,17 @@ SET  @dt_end = (SELECT
                                           ORDER BY  du.unique_resource_id_flag ASC ,
                                                     du.unique_provider_id_flag ASC
                                         ) ,
+                provider_id = ( SELECT TOP 1
+                                                    du.provider_id
+                                          FROM      dwh.data_user du
+                                          WHERE     du.resource_id = os.resource_id
+                                                    AND du.[unique_resource_id_flag] = 1
+                                                    AND os.resource_id IS NOT NULL
+                                          ORDER BY  du.unique_resource_id_flag ASC ,
+                                                    du.unique_provider_id_flag ASC
+                                        ) ,
+
+
                 slot_loc_key = ( SELECT TOP 1
                                         location_key
                                  FROM   dwh.data_location dl

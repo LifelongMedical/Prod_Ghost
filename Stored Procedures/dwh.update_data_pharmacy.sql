@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -13,7 +14,9 @@ CREATE PROCEDURE [dwh].[update_data_pharmacy]
 AS
 BEGIN
 	
-	SET NOCOUNT ON;
+	   SET NOCOUNT ON;
+	 
+		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			
         IF OBJECT_ID('dwh.data_pharmacy_rx') IS NOT NULL
             DROP TABLE dwh.data_pharmacy_rx;
@@ -21,8 +24,7 @@ BEGIN
         IF OBJECT_ID('tempdb..#temp_pharmacy') IS NOT NULL
             DROP TABLE #temp_pharmacy;
      
-        
-
+       
 
 
 	DECLARE @start_date VARCHAR(8),
@@ -30,55 +32,59 @@ BEGIN
  
 	SET @start_date=CONVERT(CHAR(8),DATEADD(DAY,-1,GETDATE()),112);
 	SET @end_date=@start_date
-	PRINT @start_date
 
-    CREATE TABLE dwh.data_pharmacy_rx
-	(
-	  
-      [person_id] INT NOT NULL,
-      [location_id] INT NOT NULL,
-      [enc_id] INT NOT NULL,
-      [provider_id] uniqueidentifier NOT null,
-      [first_mon_date] date ,
-      [md_id] numeric(8,0),
-      [rx_id] uniqueidentifier,
-      [gcnsecno] int,
-      [drug_name] nvarchar(70),
-      [ndc] CHAR(11),
-      [med_rec_nbr] varchar(70),
-      [store_id] uniqueidentifier,
-      [start_date] date,
-      [expire_date] date,
-      [provider_name] varchar(75),
-      [userName] varchar(32),
-      [RxNotbyProv] int NOT null,
-      [PatName] varchar(122) NOT null,
-      [birth_date] varchar(122),
-      [chart_id] varchar(6),
-      [ssn] CHAR(9),
-      [sig_text] varchar(512),
-      [written_qty] int,
-      [refills_left] int,
-      [refills_orig] int,
-      [SentTo] varchar(35),
-      [clinic]varchar(40),
-      [drug_dea_class] varchar(1),
-      [operation_type] varchar(5),
-      [mmyy] varchar(5),
-      [Total_Non_Controlled] int NOT null,
-      [Total_Controlled] int NOT null,
-      [Sched_I] int NOT null,
-      [Sched_II] int NOT null,
-      [Sched_III] int NOT null,
-      [Sched_IV] int NOT null,
-      [Sched_V] int NOT null
-	)
+
+ --   CREATE TABLE dwh.data_pharmacy_rx
+	--(
+	--  pharmacy_key INT NOT NULL  PRIMARY KEY,
+ --     [person_id] INT NOT NULL,
+ --     [location_id] INT NOT NULL,
+ --     [enc_id] INT,
+ --     [provider_id] UNIQUEIDENTIFIER NOT null,
+ --     [first_mon_date] date 
+ --     --[md_id] numeric(8,0),
+ --     --[rx_id] uniqueidentifier,
+ --     --[gcnsecno] int,
+ --     --[drug_name] nvarchar(70),
+ --     --[ndc] CHAR(11),
+ --     --[med_rec_nbr] varchar(70),
+ --     --[store_id] uniqueidentifier,
+ --     --[start_date] date,
+ --     --[expire_date] date,
+ --     --[provider_name] varchar(75),
+ --     --[userName] varchar(32),
+ --     --[RxNotbyProv] int NOT null,
+ --     --[PatName] varchar(122) NOT null,
+ --     --[birth_date] varchar(122),
+ --     --[chart_id] varchar(6),
+ --     --[ssn] CHAR(9),
+ --     --[sig_text] varchar(512),
+ --     --[written_qty] int,
+ --     --[refills_left] int,
+ --     --[refills_orig] int,
+ --     --[SentTo] varchar(35),
+ --     --[clinic]varchar(40),
+ --     --[drug_dea_class] varchar(1),
+ --     --[operation_type] varchar(5),
+ --     --[mmyy] varchar(5),
+ --     --[Total_Non_Controlled] int NOT null,
+ --     --[Total_Controlled] int NOT null,
+ --     --[Sched_I] int NOT null,
+ --     --[Sched_II] int NOT null,
+ --     --[Sched_III] int NOT null,
+ --     --[Sched_IV] int NOT null,
+ --     --[Sched_V] int NOT null
+	--)
 
 	  
 
 
 --ndc drug billing number
 --erx Electronic Prescribing
+--@hd can we add a field to pharmacy data called active_med for those meds that don't have an end date?
+--Hanife Doganay, Developer at Lifelong Medical
+
+
 
 						SELECT DISTINCT 
 						p.person_id,
@@ -86,6 +92,7 @@ BEGIN
 						prov.provider_id,
 						CASE WHEN ISDATE(pm.start_date)=1 THEN CAST(CONVERT(CHAR(6),pm.start_date,112)+'01' AS date) ELSE NULL END AS first_mon_date,
 						f.medid AS md_id,
+					 	CASE WHEN pm.date_stopped IS NULL THEN 'Active' ELSE 'Discontinued'  END AS active_med,
 						pm.enc_id,
 						pm.medid AS rx_id,
 						pm.gcn_seqno AS gcnsecno,
@@ -162,53 +169,17 @@ AND lm.location_id IN (SELECT location_id FROM dwh.data_location);
 
 
 
-  INSERT  INTO dwh.data_pharmacy_rx
-          (
-            person_id ,
-            location_id ,
-            enc_id ,
-            provider_id ,
-            first_mon_date ,
-            md_id ,
-            rx_id ,
-            gcnsecno ,
-            drug_name ,
-            ndc ,
-            med_rec_nbr ,
-            store_id ,
-            start_date ,
-            expire_date ,
-            provider_name ,
-            userName ,
-            RxNotbyProv ,
-            PatName ,
-            birth_date ,
-            chart_id ,
-            ssn ,
-            sig_text ,
-            written_qty ,
-            refills_left ,
-            refills_orig ,
-            SentTo ,
-            clinic ,
-            drug_dea_class ,
-            operation_type ,
-            mmyy ,
-            Total_Non_Controlled ,
-            Total_Controlled ,
-            Sched_I ,
-            Sched_II ,
-            Sched_III ,
-            Sched_IV ,
-            Sched_V
-          )
+
+
              
-SELECT per.per_mon_id,
-lc.location_key,
-ph.enc_id,
-ph.provider_id,
+SELECT 
 ph.first_mon_date,
+per.per_mon_id,
+lc.location_key,
+app.enc_appt_key,
+ph.provider_id,
 ph.md_id,
+ph.active_med,
 ph.rx_id,
 ph.gcnsecno,
 ph.drug_name,
@@ -223,7 +194,7 @@ ph.RxNotbyProv,
 ph.PatName,
 ph.birth_date,
 ph.chart_id,
-ph.snn,
+ph.ssn,
 ph.sig_text,
 ph.written_qty,
 ph.refills_left,
@@ -240,15 +211,14 @@ ph.Sched_II,
 ph.Sched_III,
 ph.Sched_IV,
 ph.Sched_V
+INTO dwh.data_pharmacy_rx
 FROM #temp_pharmacy ph 
 LEFT OUTER JOIN [dwh].data_person_nd_month per ON ph.person_id=per.person_id
-LEFT OUTER JOIN [dwh].data_appointment app ON ph.enc_id=app.enc_id AND ph.person_id= app.person_id
+LEFT OUTER JOIN [dwh].data_appointment app ON ph.enc_id=app.enc_id 
 LEFT OUTER JOIN [dwh].data_location lc ON ph.location_id=lc.location_id 
 
 
-		
-        ALTER TABLE Prod_Ghost.dwh.data_pharmacy_rx
-        ADD CONSTRAINT enc_appt_key_PK PRIMARY KEY (pharmacy_key);	 
+	
 
 
 END

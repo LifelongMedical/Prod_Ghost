@@ -101,7 +101,7 @@ AS
                     lm.ud_demo3_id ,
                     lm.healthpac_id ,
                     loc.location_name AS location_mstr_name ,
-                    COALESCE(ml.mstr_list_item_desc, lm.location_name) AS location_mh_name ,
+                    COALESCE(ml.mstr_list_item_desc, loc.location_name) AS location_mh_name ,
 					lm.site_id,
                     COALESCE(lm.location_id_unique_flag, 1) AS location_id_unique_flag
             INTO    dwh.data_location

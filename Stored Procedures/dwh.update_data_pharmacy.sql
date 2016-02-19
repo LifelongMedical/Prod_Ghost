@@ -15,12 +15,9 @@ AS
 BEGIN
 	
 	   SET NOCOUNT ON;
-	 
-		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+	   SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 			
-        IF OBJECT_ID('dwh.data_pharmacy_rx') IS NOT NULL
-            DROP TABLE dwh.data_pharmacy_rx;
-			 
+      
         IF OBJECT_ID('tempdb..#temp_pharmacy') IS NOT NULL
             DROP TABLE #temp_pharmacy;
      
@@ -30,59 +27,62 @@ BEGIN
 	DECLARE @start_date VARCHAR(8),
 	@end_date VARCHAR(8)
  
-	SET @start_date=CONVERT(CHAR(8),DATEADD(DAY,-1,GETDATE()),112);
-	SET @end_date=@start_date
+	--SET @start_date=CONVERT(CHAR(8),DATEADD(DAY,-1,GETDATE()),112);
+	--SET @end_date=@start_date
+
+	--pharmacy start date is 20130301 
+	SET @start_date='20140101';
+	SET @end_date='20151231'    --CONVERT(CHAR(8),DATEADD(DAY,-1,GETDATE()),112);
+
 
 
  --   CREATE TABLE dwh.data_pharmacy_rx
 	--(
-	--  pharmacy_key INT NOT NULL  PRIMARY KEY,
  --     [person_id] INT NOT NULL,
  --     [location_id] INT NOT NULL,
  --     [enc_id] INT,
  --     [provider_id] UNIQUEIDENTIFIER NOT null,
- --     [first_mon_date] date 
- --     --[md_id] numeric(8,0),
- --     --[rx_id] uniqueidentifier,
- --     --[gcnsecno] int,
- --     --[drug_name] nvarchar(70),
- --     --[ndc] CHAR(11),
- --     --[med_rec_nbr] varchar(70),
- --     --[store_id] uniqueidentifier,
- --     --[start_date] date,
- --     --[expire_date] date,
- --     --[provider_name] varchar(75),
- --     --[userName] varchar(32),
- --     --[RxNotbyProv] int NOT null,
- --     --[PatName] varchar(122) NOT null,
- --     --[birth_date] varchar(122),
- --     --[chart_id] varchar(6),
- --     --[ssn] CHAR(9),
- --     --[sig_text] varchar(512),
- --     --[written_qty] int,
- --     --[refills_left] int,
- --     --[refills_orig] int,
- --     --[SentTo] varchar(35),
- --     --[clinic]varchar(40),
- --     --[drug_dea_class] varchar(1),
- --     --[operation_type] varchar(5),
- --     --[mmyy] varchar(5),
- --     --[Total_Non_Controlled] int NOT null,
- --     --[Total_Controlled] int NOT null,
- --     --[Sched_I] int NOT null,
- --     --[Sched_II] int NOT null,
- --     --[Sched_III] int NOT null,
- --     --[Sched_IV] int NOT null,
- --     --[Sched_V] int NOT null
+ --     [first_mon_date] DATE, 
+ --     [md_id] numeric(8,0),
+	--  [active_med] INT NOT null,
+ --     [rx_id] int,
+ --     [gcnsecno] int,
+ --     [drug_name] nvarchar(70),
+ --     [ndc] CHAR(11),
+ --     [med_rec_nbr] varchar(70),
+ --     [store_id] uniqueidentifier,
+ --     [start_date] date,
+ --     [expire_date] date,
+ --     [provider_name] varchar(75),
+ --     [userName] varchar(32),
+ --     [RxNotbyProv] int NOT null,
+ --     [PatName] varchar(122) NOT null,
+ --     [birth_date] varchar(122),
+ --     [chart_id] varchar(6),
+ --     [ssn] CHAR(9),
+ --     [sig_text] varchar(512),
+ --     [written_qty] int,
+ --     [refills_left] int,
+ --     [refills_orig] int,
+ --     [SentTo] varchar(35),
+ --     [clinic]varchar(40),
+ --     [drug_dea_class] varchar(1),
+ --     [operation_type] varchar(5),
+ --     [mmyy] varchar(5),
+ --     [Total_Non_Controlled] int NOT null,
+ --     [Total_Controlled] int NOT null,
+ --     [Sched_I] int NOT null,
+ --     [Sched_II] int NOT null,
+ --     [Sched_III] int NOT null,
+ --     [Sched_IV] int NOT null,
+ --     [Sched_V] int NOT null
 	--)
+	
 
-	  
 
 
 --ndc drug billing number
 --erx Electronic Prescribing
---@hd can we add a field to pharmacy data called active_med for those meds that don't have an end date?
---Hanife Doganay, Developer at Lifelong Medical
 
 
 
@@ -92,7 +92,7 @@ BEGIN
 						prov.provider_id,
 						CASE WHEN ISDATE(pm.start_date)=1 THEN CAST(CONVERT(CHAR(6),pm.start_date,112)+'01' AS date) ELSE NULL END AS first_mon_date,
 						f.medid AS md_id,
-					 	CASE WHEN pm.date_stopped IS NULL THEN 'Active' ELSE 'Discontinued'  END AS active_med,
+					 	CASE WHEN pm.date_stopped IS NULL THEN 1 ELSE 0  END AS active_med,
 						pm.enc_id,
 						pm.medid AS rx_id,
 						pm.gcn_seqno AS gcnsecno,
@@ -151,33 +151,72 @@ BEGIN
                           END ) AS Sched_V
 						  INTO #temp_pharmacy
 FROM [10.183.0.94].[NGProd].[dbo].person per
-INNER JOIN [10.183.0.94].[NGProd].[dbo].patient_medication pm ON per.person_id=pm.person_id
-INNER JOIN [10.183.0.94].[NGProd].dbo.patient p ON p.person_id=per.person_id
-INNER JOIN [10.183.0.94].[NGProd].dbo.provider_mstr prov ON pm.provider_id=prov.provider_id
-INNER JOIN [10.183.0.94].[NGProd].dbo.location_mstr lm ON pm.location_id=lm.location_id
-INNER JOIN [10.183.0.94].[NGProd].dbo.fdb_med_mstr f ON pm.medid=f.medid AND pm.gcn_seqno=f.gcn_seqno
-INNER JOIN [10.183.0.94].[NGProd].dbo.erx_message_history erx ON per.person_id=erx.person_id
-INNER JOIN [10.183.0.94].[NGProd].dbo.med_rx_notes med ON erx.medication_id=med.medication_id
-INNER JOIN [10.183.0.94].[NGProd].dbo.pharmacy_mstr pharma ON erx.pharmacy_id=pharma.pharmacy_id
-INNER JOIN [10.183.0.94].[NGProd].dbo.user_mstr um ON pm.created_by=um.user_id
-LEFT JOIN [10.183.0.94].[NGProd].dbo.prescription_audit pa ON pm.enc_id=pa.enc_id
+INNER JOIN [10.183.0.94].[NGProd].[dbo].patient_medication pm with(nolock) ON per.person_id=pm.person_id
+INNER JOIN [10.183.0.94].[NGProd].dbo.patient p with(nolock) ON p.person_id=per.person_id
+INNER JOIN [10.183.0.94].[NGProd].dbo.provider_mstr prov with(nolock) ON pm.provider_id=prov.provider_id
+INNER JOIN [10.183.0.94].[NGProd].dbo.location_mstr lm with(nolock) ON pm.location_id=lm.location_id
+INNER JOIN [10.183.0.94].[NGProd].dbo.fdb_med_mstr f with(nolock) ON pm.medid=f.medid AND pm.gcn_seqno=f.gcn_seqno
+INNER JOIN [10.183.0.94].[NGProd].dbo.erx_message_history erx with(nolock) ON per.person_id=erx.person_id
+INNER JOIN [10.183.0.94].[NGProd].dbo.med_rx_notes med with(nolock) ON erx.medication_id=med.medication_id
+INNER JOIN [10.183.0.94].[NGProd].dbo.pharmacy_mstr pharma with(nolock) ON erx.pharmacy_id=pharma.pharmacy_id
+INNER JOIN [10.183.0.94].[NGProd].dbo.user_mstr um with(nolock) ON pm.created_by=um.user_id
+LEFT JOIN [10.183.0.94].[NGProd].dbo.prescription_audit pa with(nolock) ON pm.enc_id=pa.enc_id
 WHERE pm.start_date >=@start_date
 AND pm.start_date<=@end_date
 AND pa.operation_type <>''
 AND lm.location_id IN (SELECT location_id FROM dwh.data_location);
 
 
+SELECT userName FROM #temp_pharmacy
 
 
-
-
+    INSERT  INTO [dwh].[data_pharmacy_rx] 
+                ( [person_id] ,
+                  [location_id] ,
+                  [provider_id] ,
+				  [enc_id],
+                  first_mon_date,
+				  [md_id] ,
+                 [active_med],
+                  [rx_id] ,
+                  [gcnsecno] ,
+                  [drug_name] ,
+                  [ndc] ,
+                  [med_rec_nbr] ,
+                  [store_id] ,
+                  [start_date] ,
+                  [expire_date] ,
+                  [Provider_Name] ,
+                  [UserName] ,
+                 [RxNotbyProv] ,
+                  [PatName] ,
+                  [birth_date] ,
+                  [chart_id] ,
+                  [ssn] ,
+                  [sig_text] ,
+                  [written_qty] ,
+                  [refills_left] ,
+                  [refills_orig] ,
+                  [SentTo] ,
+                  [clinic] ,
+                  [drug_dea_class] ,
+                  [operation_type] ,
+                  [mmyy] ,
+                  [Total_Non_Controlled] ,
+                  [Total_Controlled] ,
+                  [Sched_I] ,
+                  [Sched_II] ,
+                  [Sched_III] ,
+                  [Sched_IV] ,
+                  [Sched_V] 
+                )
              
-SELECT 
-ph.first_mon_date,
+select
 per.per_mon_id,
 lc.location_key,
-app.enc_appt_key,
 ph.provider_id,
+app.enc_appt_key,
+ph.first_mon_date,
 ph.md_id,
 ph.active_med,
 ph.rx_id,
@@ -210,12 +249,11 @@ ph.Sched_I,
 ph.Sched_II,
 ph.Sched_III,
 ph.Sched_IV,
-ph.Sched_V
-INTO dwh.data_pharmacy_rx
+ph.Sched_V 
 FROM #temp_pharmacy ph 
-LEFT OUTER JOIN [dwh].data_person_nd_month per ON ph.person_id=per.person_id
-LEFT OUTER JOIN [dwh].data_appointment app ON ph.enc_id=app.enc_id 
-LEFT OUTER JOIN [dwh].data_location lc ON ph.location_id=lc.location_id 
+LEFT OUTER JOIN [dwh].data_person_nd_month per with(nolock) ON ph.person_id=per.person_id
+LEFT OUTER JOIN [dwh].data_appointment app with(nolock) ON ph.enc_id=app.enc_id 
+LEFT OUTER JOIN [dwh].data_location lc with(nolock) ON ph.location_id=lc.location_id 
 
 
 	

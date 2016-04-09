@@ -10,6 +10,7 @@ CREATE TABLE [dwh].[data_appointment]
 [enc_loc_key] [int] NULL,
 [enc_loc_id] [uniqueidentifier] NULL,
 [enc_rendering_key] [int] NULL,
+[provider_key] [int] NULL,
 [enc_rendering_id] [uniqueidentifier] NULL,
 [per_mon_id] [int] NULL,
 [location_key] [int] NULL,
@@ -23,12 +24,14 @@ CREATE TABLE [dwh].[data_appointment]
 [event_id] [uniqueidentifier] NULL,
 [enc_date] [date] NULL,
 [enc_checkin_datetime] [datetime] NULL,
-[appt_nbr] [numeric] (12, 0) NULL,
-[enc_nbr] [numeric] (12, 0) NULL,
+[appt_nbr] [numeric] (18, 0) NULL,
+[enc_nbr] [numeric] (18, 0) NULL,
 [appt_type] [char] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [appt_status] [char] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [enc_slot_type] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [appt_date] [date] NULL,
+[appt_date_last] [date] NULL,
+[enc_date_last] [date] NULL,
 [appt_time] [varchar] (4) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [appt_duration] [int] NULL,
 [appt_interval] [int] NULL,
@@ -73,12 +76,19 @@ CREATE TABLE [dwh].[data_appointment]
 [cycle_min_kept_readyforprovider] [int] NULL,
 [cycle_min_kept_charted] [int] NULL,
 [cycle_min_readyforprovider_checkout] [int] NULL,
-[cycle_min_slottime_to_kept] [int] NULL
+[cycle_min_slottime_to_kept] [int] NULL,
+[pay1_name] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[pay2_name] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[pay3_name] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[pay1_finclass] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[pay2_finclass] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[pay3_finclass] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[ng_data] [int] NULL
 ) ON [PRIMARY]
-GO
-ALTER TABLE [dwh].[data_appointment] ADD CONSTRAINT [enc_appt_key_PK] PRIMARY KEY CLUSTERED  ([enc_appt_key]) ON [PRIMARY]
-GO
+ALTER TABLE [dwh].[data_appointment] ADD 
+CONSTRAINT [enc_appt_key_PK] PRIMARY KEY CLUSTERED  ([enc_appt_key]) ON [PRIMARY]
 CREATE NONCLUSTERED INDEX [IX_person_mon_id1] ON [dwh].[data_appointment] ([per_mon_id]) ON [PRIMARY]
-GO
+
 CREATE NONCLUSTERED INDEX [IX_person_mon_x_first_mon_date1] ON [dwh].[data_appointment] ([per_mon_id], [first_mon_date]) ON [PRIMARY]
+
 GO

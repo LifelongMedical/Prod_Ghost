@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -42,6 +43,7 @@ AS
             DROP TABLE fdt.[Fact Schedule];
 		
         SELECT  [slot_key],
+		[resource_key],
 		        [schedule_resource_key] ,
                 [slot_loc_key] ,
                 [category_key] ,
@@ -110,11 +112,7 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
                 nbr_pt_inact_12m AS [Number Inactive Pt Past 12 Months] ,
                 nbr_pt_inact_18m AS [Number Inactive Pt Past 18 Months] ,
                 nbr_pt_inact_24m AS [Number Inactive Pt Past 24 Months] ,
-                nbr_pt_lost_3m AS [Number Pt Lost 3 Months] ,
-                nbr_pt_lost_6m AS [Number Pt Lost 6 Months] ,
-                nbr_pt_lost_12m AS [Number Pt Lost 12 Months] ,
-                nbr_pt_lost_18m AS [Number Pt Lost 18 Months] ,
-                nbr_pt_lost_24m AS [Number Pt Lost 24 Months] ,
+           
                 nbr_pt_mh_change AS [Number of Patients with Medical Home Change] ,
                 nbr_pt_pcp_change AS [Number of Patients with PCP Change] ,
                 nbr_pt_never_active AS [Number of Patients Never Active]
@@ -156,6 +154,7 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
         SELECT  enc_appt_key , --pk
                 user_resource_key ,  --Definitely happens all the time where the rendering resource is not the rendering provider -- So need two dimensions
                 enc_rendering_key ,
+				provider_key,
                 location_key , --I only found one instance where the locatin of the appointment was different then the encounter.  I will merge this dimension
                 per_mon_id , -- Dimension looks good as appt and encounter person always match.  I will note that this field is built from the enc_app time Dimension.
                 enc_appt_comp_key ,
@@ -214,7 +213,15 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
                 cycle_min_kept_charted AS [Min from Kept to Charted] ,
                 cycle_min_kept_charted AS [Mins from Kept to Charted] ,
                 cycle_min_readyforprovider_checkout AS [Min from Ready for Prov to Checkout] ,
-				CAST(appt_create_time AS DATE) AS [Date of Appointment Made]
+				CAST(appt_create_time AS DATE) AS [Date of Appointment Made],
+				pay1_name [Payer 1 Name],
+				pay1_finclass [Payer 1 Financial Class],
+				pay2_name [Payer 2 Name],
+				pay2_finclass [Payer 2 Financial Class],
+				pay3_name [Payer 3 Name],
+				pay3_finclass [Payer 3 Financial Class],
+				appt_date_last [Date of Last Appointment],
+				enc_date_last [Date of Last Encounter]
               
 				--Additional Fields considered but not included
 				--COALESCE(CAST(enc_checkin_datetime AS date),appt_date,enc_date) AS Ops_Time  --For reporting when the actually work took place  Could be called Ops Time
@@ -231,14 +238,14 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
 		
 			  
         ALTER TABLE fdt.[Fact Encounter and Appointment]
-        ADD CONSTRAINT enc_appt_keypk PRIMARY KEY (enc_appt_key);
+        ADD CONSTRAINT enc_appt_keypk23 PRIMARY KEY (enc_appt_key);
 			  
 			  
         SELECT  [employee_hours_key] ,
                 [employee_hours_comp_key] ,
                 [employee_key] ,
-                [employee_month_key] ,
-				location_key,
+                location_key,
+				[Site],
                 [Pay Date] ,
                 [Hours Timecard] ,
                 [Hours Payroll] ,
@@ -254,8 +261,9 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
 					  
         SELECT  [employee_hours_key] ,
                 [employee_hours_comp_key] ,
+				provider_key,
                 [employee_key] ,
-                [employee_month_key] ,
+                [Site],
 				location_key,
                 [Pay Date] ,
                 [Hours Timecard] ,

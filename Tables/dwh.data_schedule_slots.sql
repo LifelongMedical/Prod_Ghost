@@ -17,6 +17,7 @@ CREATE TABLE [dwh].[data_schedule_slots]
 [nbr_slots_open_final_any] [int] NULL,
 [nbr_slots_available] [int] NULL,
 [nbr_slots_overbook] [int] NULL,
+[resource_key] [int] NULL,
 [slot_key] [int] NOT NULL IDENTITY(1, 1)
 ) ON [PRIMARY]
 GO

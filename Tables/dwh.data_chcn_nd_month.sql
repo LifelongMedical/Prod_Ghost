@@ -1,0 +1,42 @@
+CREATE TABLE [dwh].[data_chcn_nd_month]
+(
+[per_mon_key] [int] NOT NULL IDENTITY(1, 1),
+[memb_id] [nvarchar] (20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[first_month_date] [date] NULL,
+[person_id] [uniqueidentifier] NULL,
+[chc] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[company] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[effdate] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[termdate] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[patid] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[mgd_care_plan] [varchar] (20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[subssn] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[lastnm] [varchar] (35) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[firstnm] [varchar] (25) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[street] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[city] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[zip] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[dob] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[sex] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[phone] [varchar] (20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[language] [varchar] (8) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[mcal10] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[otherid2] [varchar] (15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[site] [varchar] (20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[hic] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[mcarea] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[mcareb] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[ccs] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[ccsdt] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[cob] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[hfpcopay] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[ac] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[transaction_code] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[transaction_date] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[sourcefile] [varchar] (50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[run_date] [datetime] NULL,
+[active] [int] NULL
+) ON [PRIMARY]
+GO
+ALTER TABLE [dwh].[data_chcn_nd_month] ADD CONSTRAINT [PK__data_chc__FC02504030A23979] PRIMARY KEY CLUSTERED  ([per_mon_key]) ON [PRIMARY]
+GO

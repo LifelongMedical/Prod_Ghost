@@ -95,7 +95,7 @@ GO
 
 CREATE PROCEDURE [dwh].[update_data_person_nd_month]
 AS
-    BEGIN
+   BEGIN
 	
         SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; 
         SET ANSI_NULLS ON;
@@ -103,6 +103,25 @@ AS
 
         IF OBJECT_ID('dwh.data_person_nd_month') IS NOT NULL
             DROP TABLE dwh.data_person_nd_month;
+
+		IF OBJECT_ID('tempdb..#person_patient') IS NOT NULL
+            DROP TABLE #person_patient;
+
+		IF OBJECT_ID('tempdb..#first_enc_date_scrub') IS NOT NULL 
+			DROP TABLE #first_enc_date_scrub
+
+		IF OBJECT_ID('tempdb..#Status') IS NOT NULL
+			DROP TABLE #Status
+
+		IF OBJECT_ID('tempdb..#pcp_remap') IS NOT NULL
+			DROP TABLE #pcp_remap
+
+		IF OBJECT_ID('tempdb..#location_id_remap') IS NOT NULL
+			DROP TABLE #location_id_remap
+
+		IF OBJECT_ID('tempdb..#ND_roll_up') IS NOT NULL
+			DROP TABLE #ND_roll_up
+
 
 		--What date range to include in the person month table?
 		--Since the earliest implementation date is 20100301 all data starts at that point to the current date
@@ -115,8 +134,72 @@ AS
         SET @build_dt_start = CONVERT(VARCHAR(8), DATEADD(MONTH, 6, GETDATE()));
         SET @build_dt_end = CONVERT(VARCHAR(8), GETDATE(), 112);
         SET @build_dt_start = '20100301';
+
+
+		--Temp table is created in a separate statement to account for the later addition of ECW fields
+		--Even UNIQUEIDENTIFIER is NULL because ECW does not use this data type		
+		CREATE TABLE #person_patient(
+			[person_id] UNIQUEIDENTIFIER NULL,
+			[expired_date] VARCHAR(8) NULL,
+			[primarycare_prov_id] UNIQUEIDENTIFIER NULL,
+			[person_id_ecw] INT NULL,
+			[pcp_id_ecw] INT NULL,
+			[full_name] VARCHAR(150) NULL,
+			[last_name] VARCHAR(70) NULL,
+			[first_name] VARCHAR(70) NULL,
+			[middle_name] VARCHAR(25) NULL,
+			[dob] VARCHAR(19) NULL,
+			[address_line_1] VARCHAR(60) NULL,
+			[address_line_2] VARCHAR(60) NULL,
+			[city] VARCHAR(35) NULL,
+			[state] VARCHAR(10) NULL,
+			[zip] VARCHAR(12) NULL,
+			[home_phone] VARCHAR(30) NULL,
+			[sex] VARCHAR(1)  NULL,
+			[ssn] VARCHAR(15) NULL,
+			[alt_phone] VARCHAR(15) NULL,
+			[marital_status] VARCHAR(1) NULL,
+			[race] VARCHAR(100) NULL,
+			[language] VARCHAR(100) NULL,
+			[ethnicity] VARCHAR(40) NULL,
+			[med_rec_nbr] VARCHAR(30) NULL,
+			[first_enc_date] DATE NULL,
+			[deceased] INT NULL,
+			[ng_data] INT NULL
+
 		
+		
+		)
+
+	
         
+		--Insert the NextGen patient data into the temp table first
+		INSERT INTO #person_patient
+		        ( person_id ,
+		          expired_date ,
+		          primarycare_prov_id ,
+		          full_name ,
+		          last_name ,
+		          first_name ,
+		          middle_name ,
+		          dob ,
+		          address_line_1 ,
+		          address_line_2 ,
+		          city ,
+		          state ,
+		          zip ,
+		          home_phone ,
+		          sex ,
+		          ssn ,
+		          alt_phone ,
+		          marital_status ,
+		          race ,
+		          language ,
+		          ethnicity ,
+		          med_rec_nbr ,
+		          ng_data
+		        )
+
         SELECT  per.person_id ,
                 COALESCE(per.expired_date, '') AS expired_date ,
                 per.primarycare_prov_id ,
@@ -139,11 +222,69 @@ AS
                 COALESCE(per.race, '') AS race ,
                 COALESCE(per.language, '') AS language ,
                 COALESCE(per.ethnicity, '') AS ethnicity ,
-                COALESCE(pat.med_rec_nbr, '') AS med_rec_nbr
-        INTO    #person_patient
+                COALESCE(pat.med_rec_nbr, '') AS med_rec_nbr,
+				1 AS ng_data
         FROM    [10.183.0.94].NGProd.dbo.person per
                 LEFT JOIN [10.183.0.94].NGProd.dbo.patient pat ON per.person_id = pat.person_id;
-               
+		
+
+		--Insert the ECW patient data
+		INSERT INTO #person_patient
+		        ( 
+		          expired_date ,
+		          person_id_ecw ,
+		          pcp_id_ecw ,
+		          full_name ,
+		          last_name ,
+		          first_name ,
+				  middle_name,
+		          dob ,
+		          address_line_1 ,
+		          address_line_2 ,
+		          city ,
+		          state ,
+		          zip ,
+		          home_phone ,
+		          sex ,
+		          ssn ,
+		          alt_phone ,
+		          marital_status ,
+		          race ,
+		          language ,
+		          ethnicity ,
+		          med_rec_nbr ,
+				  first_enc_date,
+				  deceased,
+		          ng_data
+		        )
+		SELECT  
+                per.expired_date, --Currently having issues pulling this data from ECW table
+				per.patient_id,
+                per.pcp_id ,
+                COALESCE(LTRIM(RTRIM(per.first_name)) + ' ' + LTRIM(RTRIM(per.last_name)), '') AS full_name ,
+                COALESCE(per.last_name, '') AS last_name ,
+                COALESCE(per.first_name, '') AS first_name ,
+				'' AS middle_name,
+                COALESCE(per.date_of_birth, '') AS dob ,
+                COALESCE(per.address_line_1, '') AS address_line_1 ,
+                COALESCE(per.address_line_2, '') AS address_line_2 ,
+                COALESCE(per.city, '') AS city ,
+                COALESCE(per.state, '') AS state ,
+                COALESCE(per.zip, '') AS zip ,
+                COALESCE(per.home_phone, '') AS home_phone ,
+                COALESCE(per.sex, '') AS sex ,
+                COALESCE(per.ssn, '') AS ssn ,
+                COALESCE(per.alt_phone, '') AS alt_phone ,
+                COALESCE(per.marital_status, '') AS marital_status ,
+                COALESCE(per.race, '') AS race ,
+                COALESCE(per.language, '') AS language ,
+                COALESCE(per.ethnicity, '') AS ethnicity ,
+                COALESCE(per.med_rec_nbr, '') AS med_rec_nbr,
+				per.first_enc_date,
+				per.deceased,
+				0 AS ng_data
+		FROM dwh.data_patient_ecw per
+
 
 
 
@@ -166,29 +307,87 @@ AS
                 LEFT JOIN [10.183.0.94].NGProd.dbo.patient pat ON per.person_id = pat.person_id
                 LEFT JOIN [10.183.0.94].NGProd.dbo.patient_encounter enc ON per.person_id = enc.person_id
         WHERE   enc.billable_ind = 'Y';
+
+
                     
                 
-                  -- Bring in location_key for medical_home 
-        SELECT  per.person_id AS person_id ,
-                loc.location_key AS mh_cur_key
-        INTO    #mh_location_id_remap
+        -- Create a temp table to hold key for Current Medical Home
+		CREATE TABLE #location_id_remap(
+			[person_id] UNIQUEIDENTIFIER NULL,
+			[person_id_ecw] INT NULL,
+			[mh_cur_key] INT NULL,
+			[ng_data] INT NULL 
+		) 
+
+		--Insert NextGen medical home data
+		INSERT INTO #location_id_remap
+		        ( person_id ,
+		          mh_cur_key,
+				  ng_data
+		        )
+        SELECT  
+				per.person_id AS person_id ,
+                loc.location_key AS mh_cur_key,
+				1 AS ng_data
         FROM    [10.183.0.94].NGProd.dbo.person per
                 LEFT JOIN [10.183.0.94].NGProd.dbo.person_ud ud ON per.person_id = ud.person_id
                 LEFT JOIN [10.183.0.94].NGProd.dbo.patient pat ON per.person_id = pat.person_id
                 LEFT JOIN Prod_Ghost.dwh.data_location loc ON loc.ud_demo3_id = ud.ud_demo3_id
                                                               AND [location_id_unique_flag] = 1;
-                    
+		--Insert ECW medical home data
+		INSERT INTO #location_id_remap
+				(
+		          person_id_ecw ,
+		          mh_cur_key,
+				  ng_data
+		        )
+		SELECT 
+				pat.patient_id,
+				loc.location_key,
+				0 AS ng_data
+		FROM dwh.data_patient_ecw pat
+		LEFT JOIN Prod_Ghost.dwh.data_location loc ON loc.ecw_location_id = pat.med_home_id
                 
-                  -- Bring in location_key for medical_home 
+        
+		
+		--Create a temp table to hold key for Current PCP
+		CREATE TABLE #pcp_remap(
+			[person_id] UNIQUEIDENTIFIER NULL,
+			[person_id_ecw] INT NULL,
+			[pcp_cur_key] INT,
+			ng_data INT
+		)
+
+		INSERT INTO #pcp_remap
+		        ( person_id ,
+		          pcp_cur_key ,
+		          ng_data
+		        )
         SELECT  per.person_id AS person_id ,
-                pro.user_key AS pcp_cur_key
-        INTO    #pcp_remap
+                pro.user_key AS pcp_cur_key,
+				1 AS ng_data
         FROM    [10.183.0.94].NGProd.dbo.person per
                 LEFT JOIN Prod_Ghost.dwh.data_user pro ON per.primarycare_prov_id = pro.provider_id
         WHERE   pro.unique_provider_id_flag = 1; 
+
+
+		--User table does not track ecw data currently
+		--possibly join provider table back to user table..
+		INSERT INTO #pcp_remap(
+		          person_id_ecw ,
+		          pcp_cur_key ,
+		          ng_data
+		        )
+		SELECT
+			pat.ecw_patient_key,
+			prov.provider_key,
+			0 AS ng_data
+		FROM dwh.data_patient_ecw pat
+		LEFT JOIN Prod_Ghost.dwh.data_provider prov ON prov.ecw_provider_key = pat.pcp_id 
                     
                 
-                  -- This table brings in the actual visit data for first office encounter as the NG field appears on audit to be unreliable.
+        -- This table brings in the actual visit data for first office encounter as the NG field appears on audit to be unreliable.
+		--Need to find Patient Status in ECW to add in
         SELECT  ps.person_id ,
                 psm.description AS patient_status_cur
         INTO    #Status
@@ -197,18 +396,30 @@ AS
                   
 	
 				     
-                
-        SELECT  pp.person_id ,
+        --Need to get patient expiration date from ECW        
+        SELECT  
+				CASE
+					WHEN pp.ng_data = 1 THEN pp.person_id
+					ELSE NULL
+				END
+					AS person_id,
+				CASE
+					WHEN pp.ng_data = 0 THEN pp.person_id_ecw
+					ELSE NULL
+				END
+					AS person_id_ecw,
                 pp.full_name ,
                 pp.first_name ,
                 pp.last_name ,
                 pp.middle_name ,
                 CASE WHEN ISDATE(pp.dob) = 1 THEN CAST(pp.dob AS DATE)
                      ELSE NULL
-                END AS dob ,
+                END 
+					AS dob ,
                 CASE WHEN ISDATE(pp.expired_date) = 1 THEN CAST(pp.expired_date AS DATE)
                      ELSE NULL
-                END AS expired_date ,
+                END 
+					AS expired_date ,
                 pp.address_line_1 ,
                 pp.address_line_2 ,
                 pp.city ,
@@ -224,16 +435,34 @@ AS
                 pp.language ,
                 pp.med_rec_nbr ,
                 tim.first_mon_date ,
-                mh.mh_cur_key ,
-                pcp.pcp_cur_key ,
-                fed.cr_first_office_enc_date ,
-                CONVERT(VARCHAR(6), fed.cr_first_office_enc_date, 112) AS patient_vintage ,
-                COALESCE(st.patient_status_cur, '') AS status_cur_key ,
+                CASE
+					WHEN pp.ng_data = 1 THEN mh.mh_cur_key
+					ELSE mhecw.mH_cur_key
+				END
+					AS mh_cur_key ,
+				CASE	
+					WHEN pp.ng_data =1 THEN pcp.pcp_cur_key
+					ELSE pcpecw.pcp_cur_key
+				END
+					AS pcp_cur_key ,
+				CASE
+					WHEN pp.ng_data = 1 THEN fed.cr_first_office_enc_date
+					ELSE pp.first_enc_date
+				END
+					AS cr_first_office_enc_date,
+                CASE
+					WHEN pp.ng_data = 1 THEN CONVERT(VARCHAR(6), fed.cr_first_office_enc_date, 112) 
+					ELSE CONVERT(VARCHAR(6), pp.first_enc_date, 112)
+				END
+					AS patient_vintage ,
+                COALESCE(st.patient_status_cur, '') 
+					AS status_cur_key ,
                   
 	              --First_Enc_Age_months can be time since first encounter or zero if no encounters ever
                 CASE 
 				  --Expired, but not yet expired, Has had an encounter in the past -- calculate months since first encounter
-                     WHEN ISDATE(pp.expired_date) = 1
+                     WHEN pp.ng_data = 1
+						  AND ISDATE(pp.expired_date) = 1
                                           --date of census is before the person expired
                           AND tim.first_mon_date < CAST(CONVERT(VARCHAR(6), pp.expired_date, 112) + '01' AS DATE)
                                          --date of census is after the first office encounter date
@@ -262,46 +491,81 @@ AS
 				  */
 				  
 				   --Has never expired and has had an encounter in the past
-                     WHEN ISDATE(pp.expired_date) = 0
+                     WHEN pp.ng_data = 1
+						  AND ISDATE(pp.expired_date) = 0
                           AND fed.cr_first_office_enc_date IS  NOT NULL
                           AND tim.first_mon_date >= CAST(CONVERT(VARCHAR(6), fed.cr_first_office_enc_date, 112) + '01' AS DATE)
                      THEN DATEDIFF(m, CAST(CONVERT(VARCHAR(6), fed.cr_first_office_enc_date, 112) + '01' AS DATE),
                                    tim.first_mon_date) + 1
+
+					 WHEN pp.ng_data = 0
+						  AND ISDATE(pp.expired_date) = 0
+                          AND fed.cr_first_office_enc_date IS  NOT NULL
+                          AND tim.first_mon_date >= CAST(CONVERT(VARCHAR(6), pp.first_enc_date, 112) + '01' AS DATE)
+                     THEN DATEDIFF(m, CAST(CONVERT(VARCHAR(6), pp.first_enc_date, 112) + '01' AS DATE),
+                                   tim.first_mon_date) + 1
+
+					 WHEN pp.ng_data = 0
+						  AND ISDATE(pp.expired_date) = 1
+                                          --date of census is before the person expired
+                          AND tim.first_mon_date < CAST(CONVERT(VARCHAR(6), pp.expired_date, 112) + '01' AS DATE)
+                                         --date of census is after the first office encounter date
+                          AND tim.first_mon_date >= CAST(CONVERT(VARCHAR(6), pp.first_enc_date, 112) + '01' AS DATE)
+                     THEN DATEDIFF(m, CAST(CONVERT(VARCHAR(6), pp.first_enc_date, 112) + '01' AS DATE),
+                                   tim.first_mon_date) + 1
+
                      ELSE NULL
 				  
 				  
 				  --Expired, but not yet expired, But they havent yet had there first enounter
 				  --Has expired and has never had an ecounter
-                END AS First_enc_age_months ,
+                END 
+					AS First_enc_age_months ,
 
 				  				                
 						--Create a New patient Flag 1 or 0 (expired patients do not get a NULL-- for the month the patient has their first encounter	
                 CASE  	                                 --This means when the first office visit is populated and is greater than the current date
-                     WHEN tim.first_mon_date = CAST(CONVERT(VARCHAR(6), fed.cr_first_office_enc_date, 112) + '01' AS DATE)
+                     WHEN pp.ng_data = 0 
+						AND tim.first_mon_date = CAST(CONVERT(VARCHAR(6), pp.first_enc_date, 112) + '01' AS DATE)
+                     THEN 1
+					 WHEN pp.ng_data = 1
+						AND tim.first_mon_date = CAST(CONVERT(VARCHAR(6), fed.cr_first_office_enc_date, 112) + '01' AS DATE)
                      THEN 1
                      ELSE 0
-                END AS nbr_new_pt ,
+                END 
+					AS nbr_new_pt ,
                 CASE  
 	          --This means when the first office visit is populated and is greater than the current date
                      WHEN cr_first_office_enc_date IS NOT NULL
                           AND tim.first_mon_date >= CAST(CONVERT(VARCHAR(6), fed.cr_first_office_enc_date, 112) + '01' AS DATE)
                      THEN 1
                      ELSE 0
-                END AS nbr_pt_seen_office_ever ,
-                CASE WHEN ISDATE(pp.expired_date) = 1
+                END 
+					AS nbr_pt_seen_office_ever ,
+                CASE 
+					 WHEN pp.ng_data = 0 THEN pp.deceased
+					 WHEN pp.ng_data = 1
+						  AND ISDATE(pp.expired_date) = 1
                           AND tim.first_mon_date >= CAST(CONVERT(VARCHAR(6), pp.expired_date, 112) + '01' AS DATE)
                      THEN 1
                      ELSE 0
-                END AS nbr_pt_deceased ,
-                CASE WHEN ISDATE(pp.expired_date) = 1
+                END 
+					AS nbr_pt_deceased ,
+                CASE 
+					 WHEN ISDATE(pp.expired_date) = 1
                           AND CAST(CONVERT(CHAR(6), pp.expired_date, 112) + '01' AS DATE) = tim.first_mon_date THEN 1
                      ELSE 0
-                END AS nbr_pt_deceased_this_month
+                END 
+					AS nbr_pt_deceased_this_month,
+				pp.ng_data
         INTO    #ND_roll_up
         FROM    #person_patient pp
-                LEFT JOIN #mh_location_id_remap mh ON pp.person_id = mh.person_id
+				--pcp_remap and location_id_remap are joined twice, once on NextGen id, once on ECW id
+                LEFT JOIN #location_id_remap mh ON pp.person_id = mh.person_id
                 LEFT JOIN #Status st ON st.person_id = pp.person_id
+				LEFT JOIN #location_id_remap mhecw ON pp.person_id_ecw = mhecw.person_id_ecw
                 LEFT JOIN #pcp_remap pcp ON pcp.person_id = pp.person_id
+				LEFT JOIN #pcp_remap pcpecw ON pcpecw.person_id_ecw=pp.person_id_ecw
                 LEFT JOIN ( SELECT  cr_first_office_enc_date ,
                                     person_id ,
                                     cr_first_bill_enc_date ,
@@ -309,14 +573,15 @@ AS
                             FROM    #first_enc_date_scrub
                             WHERE   #first_enc_date_scrub.Enc_row = 1
                           ) fed ON fed.person_id = pp.person_id
+				--Cross join creates a patient record for every month from start date to end date
+				--Allows patient table to be a snapshot table
                 CROSS JOIN ( SELECT DISTINCT
                                     first_mon_date
                              FROM   Prod_Ghost.dwh.data_time
                              WHERE  first_mon_date >= CAST(@build_dt_start AS DATETIME)
                                     AND first_mon_date <= CAST(@build_dt_end AS DATETIME)
                            ) tim;
-                    
-
+           
         
         SELECT  mh.person_id ,
                 mh.mh_changed_from_name ,
@@ -656,6 +921,7 @@ AS
 
         SELECT  IDENTITY( INT, 1, 1 )  AS per_mon_id ,
                 nr.person_id ,
+				nr.person_id_ecw,
                 nr.first_mon_date ,
                 nr.mh_cur_key ,
                 hx_mh.mh_hx_key ,
@@ -673,22 +939,26 @@ AS
                 nr.patient_vintage ,
 					   
 					   --Populate age if patient has not expired
-                CASE WHEN nr.dob IS NOT NULL
+                CASE 
+					 WHEN nr.dob IS NOT NULL
                           AND nr.nbr_pt_deceased != 1 THEN DATEDIFF(YY, nr.dob, nr.first_mon_date)
                      WHEN nr.dob IS NOT NULL
                           AND nr.nbr_pt_deceased = 1
                           AND nr.expired_date IS NOT NULL THEN DATEDIFF(YY, nr.dob, nr.expired_date)
                      ELSE NULL
-                END AS age_hx ,
+                END 
+					AS age_hx ,
 
 					--If patient is deceased then age = null
-                CASE WHEN nr.dob IS NOT NULL
+                CASE 
+					 WHEN nr.dob IS NOT NULL
                           AND nr.nbr_pt_deceased != 1 THEN DATEDIFF(YY, nr.dob, GETDATE())
                      WHEN nr.dob IS NOT NULL
                           AND nr.nbr_pt_deceased = 1
                           AND nr.expired_date IS NOT NULL THEN DATEDIFF(YY, nr.dob, nr.expired_date)
                      ELSE NULL
-                END AS age_cur ,
+                END 
+					 AS age_cur ,
                 nr.dob ,
                 nr.full_name ,
                 nr.first_name ,
@@ -706,7 +976,8 @@ AS
                 nr.marital_status ,
                 nr.race ,
                 REPLACE(nr.language, '*', '') AS language , --DQ Change
-                nr.med_rec_nbr
+                nr.med_rec_nbr,
+				nr.ng_data
         INTO    Prod_Ghost.dwh.data_person_nd_month
         FROM    #ND_roll_up nr
                 LEFT JOIN #Hx_med_home_process hx_mh ON hx_mh.person_id = nr.person_id

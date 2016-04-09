@@ -133,8 +133,10 @@ AS
 		--Create an aggregate user_key with provider_id and user_id Null is not present in both
                        FROM     user_match um
                                 FULL OUTER JOIN [10.183.0.94].[NGProd].[dbo].provider_mstr prov ON um.self_provider_id = prov.provider_id
-                                FULL OUTER JOIN ( SELECT    *
+                                FULL OUTER JOIN ( SELECT  TOP 1000000  *
                                                   FROM      [10.183.0.94].[NGProd].[dbo].[resources]
+												  ORDER BY resource_id, create_timestamp desc
+
                                                 --  WHERE     resource_type = 'Person'
                                                 ) res ON um.self_provider_id = res.phys_id
                      )
@@ -250,7 +252,7 @@ AS
                     LEFT JOIN enc3ms e3s ON process.provider_id = e3s.rendering_provider_id
                     LEFT JOIN enc6m e6 ON process.provider_id = e6.rendering_provider_id
                     LEFT JOIN enc12m e12 ON process.provider_id = e12.rendering_provider_id
-                    LEFT JOIN dwh.data_employee ar ON REPLACE(UPPER(LEFT(process.first_name, 3)), '''', '') = REPLACE(UPPER(LEFT(ar.[Payroll First Name],
+                    LEFT JOIN dwh.data_employee_v2 ar ON REPLACE(UPPER(LEFT(process.first_name, 3)), '''', '') = REPLACE(UPPER(LEFT(ar.[Payroll First Name],
                                                                                                         3)), '''', '')
                                                       AND REPLACE(UPPER(process.last_name), '''', '') = REPLACE(UPPER(ar.[Payroll Last Name]),
                                                                                                         '''', '');

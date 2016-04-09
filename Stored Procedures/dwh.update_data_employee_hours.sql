@@ -26,8 +26,7 @@ AS
 
 
         SELECT  de.employee_key ,
-	        	de.employee_month_key,
-                [Pay Date] ,
+	            ah.[Pay Date] ,
                 [Type] AS status_type ,
 			
 				 ( SELECT TOP 1
@@ -37,6 +36,13 @@ AS
                                         AND dl.location_id_unique_flag = 1
                                         AND 	ah.Site IS NOT NULL
                                ) as location_key,
+				ah.site,
+					( SELECT TOP 1
+                            provider_key
+                  FROM      dwh.data_provider prov
+                  WHERE     prov.employee_key = de.employee_key
+                            AND prov.employee_key IS NOT NULL
+                ) AS provider_key,
                 [Earnings Code Timecard] AS status_ec_tc ,
                 [Earnings Code Payroll] AS status_ec_pr ,
                 ROUND([Rate], 0, 1) AS status_rate ,
@@ -53,23 +59,13 @@ AS
 				
                
 		   
-
-		-- Need to aggregate all Data control and translate into actual FTE
-	
-		-- Gonna need overtime report 
-		-- Months of employement
-		-- Vintage of employee
-		-- Balances Vacation and sick
-		
-
-
-
      --INTO dwh.data_employee_hours
         INTO    #precomp
         FROM    etl.data_adp_hours ah
-                INNER JOIN dwh.data_employee_month de ON RIGHT(ah.[Employee ID], 6) = de.[File Number]
-				AND de.first_mon_date = CAST(CONVERT(VARCHAR(6), [ah].[Pay Date], 112) +'01' AS date) ;
+                Left JOIN dwh.data_employee_v2 de ON RIGHT(ah.[Employee ID], 6) = de.[File Number];
 		      
+		
+		
 		        
               
 			  

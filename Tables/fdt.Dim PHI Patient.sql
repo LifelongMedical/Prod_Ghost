@@ -16,6 +16,8 @@ CREATE TABLE [fdt].[Dim PHI Patient]
 [Is Patient Alive] [varchar] (16) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [Is Patient Deceased this Month] [varchar] (27) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [Membership Month] [int] NULL,
+[Age Hx] [int] NULL,
+[Age Cur] [int] NULL,
 [Age Historical] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [Age_Hx_sort] [int] NOT NULL,
 [Age Current] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -40,16 +42,9 @@ CREATE TABLE [fdt].[Dim PHI Patient]
 [Marital Status] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Race] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Language] [varchar] (8000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[Medical Record Number] [varchar] (12) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
+[Medical Record Number] [varchar] (12) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Address Full] [varchar] (157) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
 ) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Dim PHI Patient] ADD CONSTRAINT [per_mon_id_pk5] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Dim PHI Patient] ADD CONSTRAINT [FK_mh_cur_key6] FOREIGN KEY ([mh_cur_key]) REFERENCES [fdt].[Dim Medical Home Current] ([location_key])
-GO
-ALTER TABLE [fdt].[Dim PHI Patient] ADD CONSTRAINT [FK_mh_hx_key7] FOREIGN KEY ([mh_hx_key]) REFERENCES [fdt].[Dim Medical Home Historical] ([location_key])
-GO
-ALTER TABLE [fdt].[Dim PHI Patient] ADD CONSTRAINT [FK_pcp_cur_key8] FOREIGN KEY ([pcp_cur_key]) REFERENCES [fdt].[Dim PCP Current] ([user_key])
-GO
-ALTER TABLE [fdt].[Dim PHI Patient] ADD CONSTRAINT [FK_pcp_hx_key9] FOREIGN KEY ([pcp_hx_key]) REFERENCES [fdt].[Dim PCP Historical] ([user_key])
+ALTER TABLE [fdt].[Dim PHI Patient] ADD 
+CONSTRAINT [per_mon_id_pk5] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
 GO

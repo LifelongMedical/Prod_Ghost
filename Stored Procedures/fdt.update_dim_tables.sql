@@ -21,7 +21,18 @@ AS
 
         SET NOCOUNT ON;
         SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
- 
+        IF OBJECT_ID('fdt.[Dim NG User]') IS NOT NULL
+            DROP TABLE  fdt.[Dim NG User];
+
+        IF OBJECT_ID('fdt.[Dim Provider]') IS NOT NULL
+            DROP TABLE  fdt.[Dim Provider];
+
+        IF OBJECT_ID('fdt.[Dim NG Resource]') IS NOT NULL
+            DROP TABLE  fdt.[Dim NG Resource];
+
+
+
+
         IF OBJECT_ID('fdt.[Dim Status Enc and Appt]') IS NOT NULL
             DROP TABLE  fdt.[Dim Status Enc and Appt];
  
@@ -88,40 +99,41 @@ AS
 
 
 			
-        IF OBJECT_ID('fdt.[Dim Employee]') IS NOT NULL
-            DROP TABLE	 fdt.[Dim Employee];
+        --IF OBJECT_ID('fdt.[Dim Employee]') IS NOT NULL
+        --    DROP TABLE	 fdt.[Dim Employee];
 
 				
-        IF OBJECT_ID('fdt.[Dim Employee Historical]') IS NOT NULL
-            DROP TABLE	 fdt.[Dim Employee Historical];
+        --IF OBJECT_ID('fdt.[Dim Employee Historical]') IS NOT NULL
+        --    DROP TABLE	 fdt.[Dim Employee Historical];
 
 
-        IF OBJECT_ID('fdt.bridge_emp_to_emp_mon') IS NOT NULL
-            DROP TABLE	fdt.bridge_emp_to_emp_mon;
+        --IF OBJECT_ID('fdt.bridge_emp_to_emp_mon') IS NOT NULL
+        --    DROP TABLE	fdt.bridge_emp_to_emp_mon;
 			
-        IF OBJECT_ID('fdt.bridge_usr_emp') IS NOT NULL
-            DROP TABLE	fdt.bridge_usr_emp;
+        --IF OBJECT_ID('fdt.bridge_usr_emp') IS NOT NULL
+        --    DROP TABLE	fdt.bridge_usr_emp;
 			
 			
         IF OBJECT_ID('fdt.[Dim Category and Event]') IS NOT NULL
             DROP TABLE	fdt.[Dim Category and Event];
 		
-		      IF OBJECT_ID('fdt.[Dim Time of Day]') IS NOT NULL
+        IF OBJECT_ID('fdt.[Dim Time of Day]') IS NOT NULL
             DROP TABLE	fdt.[Dim Time of Day];
 		
 		
-		SELECT un.appt_time AS [Time of Slot],
-		CASE WHEN SUBSTRING(un.appt_time,1,2) <12 THEN 'AM'
-		ELSE 'PM' end AS meridiem
-		
-		INTO fdt.[Dim Time of Day]
-		from
-		(SELECT   appt_time
-		FROM dwh.data_appointment
-		union
-		SELECT   slot_time AS appt_time FROM dwh.data_schedule_slots) un
-		WHERE un.appt_time IS NOT null
-		ORDER BY un.appt_time
+        SELECT  un.appt_time AS [Time of Slot] ,
+                CASE WHEN SUBSTRING(un.appt_time, 1, 2) < 12 THEN 'AM'
+                     ELSE 'PM'
+                END AS meridiem
+        INTO    fdt.[Dim Time of Day]
+        FROM    ( SELECT    appt_time
+                  FROM      dwh.data_appointment
+                  UNION
+                  SELECT    slot_time AS appt_time
+                  FROM      dwh.data_schedule_slots
+                ) un
+        WHERE   un.appt_time IS NOT NULL
+        ORDER BY un.appt_time;
 	
         ALTER TABLE fdt.[Dim Time of Day]
         ALTER COLUMN [Time of Slot] VARCHAR(4) NOT NULL;
@@ -231,15 +243,17 @@ AS
 
 
         SELECT  location_key ,
+                site_id ,
                 location_mstr_name AS [Location for Enc or Appt]
         INTO    fdt.[Dim Location for Enc or Appt]
         FROM    dwh.data_location;
 		
         ALTER TABLE   fdt.[Dim Location for Enc or Appt]
-        ADD CONSTRAINT location_key_pk17 PRIMARY KEY (location_key);
+        ADD CONSTRAINT location_key_33 PRIMARY KEY (location_key);
 
         SELECT  location_key ,
-                location_mstr_name AS [Medical Home Current]
+                location_mstr_name AS [Medical Home Current] ,
+                site_id
         INTO    fdt.[Dim Medical Home Current]
         FROM    dwh.data_location;
 		
@@ -247,6 +261,7 @@ AS
         ADD CONSTRAINT location_key_pk2 PRIMARY KEY (location_key);
 
         SELECT  location_key ,
+                site_id ,
                 location_mstr_name AS [Medical Home Historical]
         INTO    fdt.[Dim Medical Home Historical]
         FROM    dwh.data_location;
@@ -266,6 +281,14 @@ AS
         ADD CONSTRAINT user_key_pk231 PRIMARY KEY (user_key);
 		
 		
+		
+
+
+
+
+
+
+
         SELECT  user_key ,
                 employee_key ,
                 FullName AS [PCP Current] ,
@@ -345,7 +368,64 @@ AS
 		
         ALTER TABLE  fdt.[Dim Provider Rendering]
         ADD CONSTRAINT user_key_pk17 PRIMARY KEY (user_key);
-	
+
+--New set of dim patient
+
+        SELECT  [user_key] ,
+                [employee_key] ,
+                [first_name] [NG User First Name] ,
+                [last_name] [NG User Last Name] ,
+                [FullName] [NG User Full Name]
+        INTO    fdt.[Dim NG User]
+        FROM    [Prod_Ghost].[dwh].[data_user_v2];
+
+        SELECT  [provider_key] ,
+                user_key ,
+                employee_key ,
+                [role_status] [Role Status] ,
+                [first_name] [NG Prov First Name] ,
+                [last_name] [NG Prov Last Name] ,
+                [FullName] [NG Prov Full Name] ,
+                [provider_name] [NG Prov Provider Name] ,
+            
+                [first_name] [Prov First Name] ,
+                [last_name] [Prov Last Name] ,
+                [FullName] [Prov Full Name] ,
+              --  [provider_name] [Prov Provider Name] ,
+                
+				
+				
+				
+				[degree] [Degree] ,
+                [active_3m_provider] AS [Active Provider] ,
+                [primary_loc_3m_provider] AS [Primary Location for Provider] ,
+                [active_3m_provider] AS [Primary Site Active Provider 3m] ,
+                [primary_loc_3m_provider] AS [Primary Location for Provider 3m] ,
+                [active_3ms_provider] AS [Secondary Site Active Provider 3m] ,
+                [secondary_loc_3m_provider] AS [Secondary Location for Provider 6m] ,
+                [active_6m_provider] AS [Primary Active Provider 6m] ,
+                [primary_loc_6m_provider] AS [Primary Location for Provider 6m] ,
+                [active_12m_provider] AS [Active Provider 12m] ,
+                [primary_loc_12m_provider] AS [Primary Location Provider 12m]
+        INTO    fdt.[Dim Provider]
+        FROM    [Prod_Ghost].[dwh].[data_provider];
+
+        SELECT  [resource_key] ,
+                [resource_name] [NG Schedule Resource Name] ,
+                [provider_key]
+        INTO    fdt.[Dim NG Resource]
+        FROM    [Prod_Ghost].[dwh].[data_resource];
+  
+
+
+  -------
+
+
+
+
+
+
+
         SELECT  user_key ,
                 employee_key ,
                 FullName AS [User Schedule Resource] ,
@@ -406,135 +486,135 @@ AS
         ADD CONSTRAINT employee_hours_comp_key_pk PRIMARY KEY ([employee_hours_comp_key]);
 		
 		
-        SELECT  [employee_key] ,
-                [employee_month_key] ,
-                CASE WHEN age_hx <= 18 THEN '0-18 Years'
-                     WHEN age_hx <= 29 THEN '19-29 Years'
-                     WHEN age_hx <= 39 THEN '30-39 Years'
-                     WHEN age_hx <= 49 THEN '40-49 Years'
-                     WHEN age_hx <= 59 THEN '50-59 Years'
-                     WHEN age_hx <= 64 THEN '60-64 Years'
-                     WHEN age_hx <= 74 THEN '65-74 Years'
-                     WHEN age_hx <= 79 THEN '75-79 Years'
-                     WHEN age_hx <= 89 THEN '80-89 Years'
-                     WHEN age_hx <= 99 THEN '90-99 Years'
-                     WHEN age_hx >= 100 THEN '>100 Years'
-                     ELSE 'Age Unknown'
-                END AS [Age Historical] ,
-                CASE WHEN age_hx <= 18 THEN 1
-                     WHEN age_hx <= 29 THEN 2
-                     WHEN age_hx <= 39 THEN 3
-                     WHEN age_hx <= 49 THEN 4
-                     WHEN age_hx <= 59 THEN 5
-                     WHEN age_hx <= 64 THEN 6
-                     WHEN age_hx <= 74 THEN 7
-                     WHEN age_hx <= 79 THEN 8
-                     WHEN age_hx <= 89 THEN 9
-                     WHEN age_hx <= 99 THEN 10
-                     WHEN age_hx >= 100 THEN 11
-                     ELSE 12
-                END AS age_hx_sort ,
-                CASE WHEN [months_since_start] <= 1 THEN '1 Month - New Employee'
-                     WHEN [months_since_start] <= 6 THEN '2-6 Months'
-                     WHEN [months_since_start] <= 12 THEN '7-12 Months - 1 Year'
-                     WHEN [months_since_start] <= 24 THEN '13-24 Months- 2 Years'
-                     WHEN [months_since_start] <= 36 THEN '25-36 Months- 3 Years'
-                     WHEN [months_since_start] <= 48 THEN '37-48 Months- 4 Years'
-                     WHEN [months_since_start] <= 60 THEN '49-60 Months- 5 Years'
-                     WHEN [months_since_start] <= 120 THEN '61-120 Months- 6-10 Years'
-                     WHEN [months_since_start] <= 180 THEN '121-180 Months- 11-15 Years'
-                     WHEN [months_since_start] <= 240 THEN '181-240 Months- 15-20 Years'
-                     WHEN [months_since_start] > 240 THEN '>240 Months- 20 Years'
-                END AS [Time as Employee] ,
-                CASE WHEN [months_since_start] <= 1 THEN 1
-                     WHEN [months_since_start] <= 6 THEN 2
-                     WHEN [months_since_start] <= 12 THEN 3
-                     WHEN [months_since_start] <= 24 THEN 4
-                     WHEN [months_since_start] <= 36 THEN 5
-                     WHEN [months_since_start] <= 48 THEN 6
-                     WHEN [months_since_start] <= 60 THEN 7
-                     WHEN [months_since_start] <= 120 THEN 8
-                     WHEN [months_since_start] <= 180 THEN 9
-                     WHEN [months_since_start] <= 240 THEN 10
-                     WHEN [months_since_start] > 240 THEN 11
-                END AS employee_time_sort
-        INTO    fdt.[Dim Employee Historical]
-        FROM    [Prod_Ghost].[dwh].[data_employee_month];
+        --SELECT  [employee_key] ,
+        --        [employee_month_key] ,
+        --        CASE WHEN age_hx <= 18 THEN '0-18 Years'
+        --             WHEN age_hx <= 29 THEN '19-29 Years'
+        --             WHEN age_hx <= 39 THEN '30-39 Years'
+        --             WHEN age_hx <= 49 THEN '40-49 Years'
+        --             WHEN age_hx <= 59 THEN '50-59 Years'
+        --             WHEN age_hx <= 64 THEN '60-64 Years'
+        --             WHEN age_hx <= 74 THEN '65-74 Years'
+        --             WHEN age_hx <= 79 THEN '75-79 Years'
+        --             WHEN age_hx <= 89 THEN '80-89 Years'
+        --             WHEN age_hx <= 99 THEN '90-99 Years'
+        --             WHEN age_hx >= 100 THEN '>100 Years'
+        --             ELSE 'Age Unknown'
+        --        END AS [Age Historical] ,
+        --        CASE WHEN age_hx <= 18 THEN 1
+        --             WHEN age_hx <= 29 THEN 2
+        --             WHEN age_hx <= 39 THEN 3
+        --             WHEN age_hx <= 49 THEN 4
+        --             WHEN age_hx <= 59 THEN 5
+        --             WHEN age_hx <= 64 THEN 6
+        --             WHEN age_hx <= 74 THEN 7
+        --             WHEN age_hx <= 79 THEN 8
+        --             WHEN age_hx <= 89 THEN 9
+        --             WHEN age_hx <= 99 THEN 10
+        --             WHEN age_hx >= 100 THEN 11
+        --             ELSE 12
+        --        END AS age_hx_sort ,
+        --        CASE WHEN [months_since_start] <= 1 THEN '1 Month - New Employee'
+        --             WHEN [months_since_start] <= 6 THEN '2-6 Months'
+        --             WHEN [months_since_start] <= 12 THEN '7-12 Months - 1 Year'
+        --             WHEN [months_since_start] <= 24 THEN '13-24 Months- 2 Years'
+        --             WHEN [months_since_start] <= 36 THEN '25-36 Months- 3 Years'
+        --             WHEN [months_since_start] <= 48 THEN '37-48 Months- 4 Years'
+        --             WHEN [months_since_start] <= 60 THEN '49-60 Months- 5 Years'
+        --             WHEN [months_since_start] <= 120 THEN '61-120 Months- 6-10 Years'
+        --             WHEN [months_since_start] <= 180 THEN '121-180 Months- 11-15 Years'
+        --             WHEN [months_since_start] <= 240 THEN '181-240 Months- 15-20 Years'
+        --             WHEN [months_since_start] > 240 THEN '>240 Months- 20 Years'
+        --        END AS [Time as Employee] ,
+        --        CASE WHEN [months_since_start] <= 1 THEN 1
+        --             WHEN [months_since_start] <= 6 THEN 2
+        --             WHEN [months_since_start] <= 12 THEN 3
+        --             WHEN [months_since_start] <= 24 THEN 4
+        --             WHEN [months_since_start] <= 36 THEN 5
+        --             WHEN [months_since_start] <= 48 THEN 6
+        --             WHEN [months_since_start] <= 60 THEN 7
+        --             WHEN [months_since_start] <= 120 THEN 8
+        --             WHEN [months_since_start] <= 180 THEN 9
+        --             WHEN [months_since_start] <= 240 THEN 10
+        --             WHEN [months_since_start] > 240 THEN 11
+        --        END AS employee_time_sort
+        --INTO    fdt.[Dim Employee Historical]
+        --FROM    [Prod_Ghost].[dwh].[data_employee_month];
 
-        ALTER TABLE  fdt.[Dim Employee Historical]
-        ADD CONSTRAINT employee_month_key_pk10 PRIMARY KEY ([employee_month_key]);
+        --ALTER TABLE  fdt.[Dim Employee Historical]
+        --ADD CONSTRAINT employee_month_key_pk10 PRIMARY KEY ([employee_month_key]);
 
-        SELECT  [employee_key] ,
-                [cn_account_code] AS [Cost Nbr Account Code] ,
-                [cn_account_code_sub] AS [Cost Nbr Account Sub-Code] ,
-                [cn_site] AS [Cost Nbr Site Code] ,
-                [cn_fund] AS [Cost Nbr Fund] ,
-                [cn_dir_indir] AS [Cost Nbr In/Direct] ,
-                [cn_category] AS [Cost Nbr Category] ,
-                [cn_proj_grant] AS [Cost Nbr Grant] ,
-                [Home Cost Number] AS [Cost Nbr] ,
-                [Home Department] ,
-                [Location Code] ,
-                [Location] AS [Location Name] ,
-                [Payroll Name] ,
-                [File Number] ,
-                [Payroll First Name] AS [First Name] ,
-                [Payroll Last Name] AS [Last Name] ,
-                [Race] ,
-                [Gender] ,
-                CASE WHEN Age_cur <= 18 THEN '0-18 Years'
-                     WHEN Age_cur <= 29 THEN '19-29 Years'
-                     WHEN Age_cur <= 39 THEN '30-39 Years'
-                     WHEN Age_cur <= 49 THEN '40-49 Years'
-                     WHEN Age_cur <= 59 THEN '50-59 Years'
-                     WHEN Age_cur <= 64 THEN '60-64 Years'
-                     WHEN Age_cur <= 74 THEN '65-74 Years'
-                     WHEN Age_cur <= 79 THEN '75-79 Years'
-                     WHEN Age_cur <= 89 THEN '80-89 Years'
-                     WHEN Age_cur <= 99 THEN '90-99 Years'
-                     WHEN Age_cur >= 100 THEN '>100 Years'
-                     ELSE 'Age Unknown'
-                END AS [Age Current] ,
-                CASE WHEN Age_cur <= 18 THEN 1
-                     WHEN Age_cur <= 29 THEN 2
-                     WHEN Age_cur <= 39 THEN 3
-                     WHEN Age_cur <= 49 THEN 4
-                     WHEN Age_cur <= 59 THEN 5
-                     WHEN Age_cur <= 64 THEN 6
-                     WHEN Age_cur <= 74 THEN 7
-                     WHEN Age_cur <= 79 THEN 8
-                     WHEN Age_cur <= 89 THEN 9
-                     WHEN Age_cur <= 99 THEN 10
-                     WHEN Age_cur >= 100 THEN 11
-                     ELSE 12
-                END AS age_cur_sort ,
-                [Status] ,
-                [Data Control] ,
-                [flu_vac_2015_decline] AS [2015 Flu Vaccine Documented as Declined] ,
-                [flu_vac_2015_received] AS [2015 Flu Vaccine Documented as Received] ,
-                [tb_test_completed] AS [2015 TB Documentation] ,
-                [Job Title] ,
-                [Zip/Postal Code] ,
-                [Manager Last Name First Name] ,
-                [Manager Last Name] ,
-                [Manager First Name] ,
-                [Manager ID] ,
-                [Rate Type] ,
-                [rounded_salary] AS [Salary Current] ,
-                [rate_cur] AS [Rate Current] ,
-                [rate_cur_range] AS [Rate Range Current],
-                [rate_cur_range_sort] ,
-                [salary_cur_range] AS [Salary Range Current] ,
-                [salary_cur_range_sort] ,
-                CONVERT(VARCHAR(6), [Hire Date], 112) AS [Hire Year/Month] ,
-                CONVERT(VARCHAR(6), [Termination Date], 112) AS [Termination Year/Month] ,
-                [Termination Reason] ,
-                [Termination Reason Code]
-        INTO    fdt.[Dim Employee]
-        FROM    [Prod_Ghost].[dwh].[data_employee];
+        --SELECT  [employee_key] ,
+        --        [cn_account_code] AS [Cost Nbr Account Code] ,
+        --        [cn_account_code_sub] AS [Cost Nbr Account Sub-Code] ,
+        --        [cn_site] AS [Cost Nbr Site Code] ,
+        --        [cn_fund] AS [Cost Nbr Fund] ,
+        --        [cn_dir_indir] AS [Cost Nbr In/Direct] ,
+        --        [cn_category] AS [Cost Nbr Category] ,
+        --        [cn_proj_grant] AS [Cost Nbr Grant] ,
+        --        [Home Cost Number] AS [Cost Nbr] ,
+        --        [Home Department] ,
+        --        [Location Code] ,
+        --        [Location] AS [Location Name] ,
+        --        [Payroll Name] ,
+        --        [File Number] ,
+        --        [Payroll First Name] AS [First Name] ,
+        --        [Payroll Last Name] AS [Last Name] ,
+        --        [Race] ,
+        --        [Gender] ,
+        --        CASE WHEN Age_cur <= 18 THEN '0-18 Years'
+        --             WHEN Age_cur <= 29 THEN '19-29 Years'
+        --             WHEN Age_cur <= 39 THEN '30-39 Years'
+        --             WHEN Age_cur <= 49 THEN '40-49 Years'
+        --             WHEN Age_cur <= 59 THEN '50-59 Years'
+        --             WHEN Age_cur <= 64 THEN '60-64 Years'
+        --             WHEN Age_cur <= 74 THEN '65-74 Years'
+        --             WHEN Age_cur <= 79 THEN '75-79 Years'
+        --             WHEN Age_cur <= 89 THEN '80-89 Years'
+        --             WHEN Age_cur <= 99 THEN '90-99 Years'
+        --             WHEN Age_cur >= 100 THEN '>100 Years'
+        --             ELSE 'Age Unknown'
+        --        END AS [Age Current] ,
+        --        CASE WHEN Age_cur <= 18 THEN 1
+        --             WHEN Age_cur <= 29 THEN 2
+        --             WHEN Age_cur <= 39 THEN 3
+        --             WHEN Age_cur <= 49 THEN 4
+        --             WHEN Age_cur <= 59 THEN 5
+        --             WHEN Age_cur <= 64 THEN 6
+        --             WHEN Age_cur <= 74 THEN 7
+        --             WHEN Age_cur <= 79 THEN 8
+        --             WHEN Age_cur <= 89 THEN 9
+        --             WHEN Age_cur <= 99 THEN 10
+        --             WHEN Age_cur >= 100 THEN 11
+        --             ELSE 12
+        --        END AS age_cur_sort ,
+        --        [Status] ,
+        --        [Data Control] ,
+        --        [flu_vac_2015_decline] AS [2015 Flu Vaccine Documented as Declined] ,
+        --        [flu_vac_2015_received] AS [2015 Flu Vaccine Documented as Received] ,
+        --        [tb_test_completed] AS [2015 TB Documentation] ,
+        --        [Job Title] ,
+        --        [Zip/Postal Code] ,
+        --        [Manager Last Name First Name] ,
+        --        [Manager Last Name] ,
+        --        [Manager First Name] ,
+        --        [Manager ID] ,
+        --        [Rate Type] ,
+        --        [rounded_salary] AS [Salary Current] ,
+        --        [rate_cur] AS [Rate Current] ,
+        --        [rate_cur_range] AS [Rate Range Current],
+        --        [rate_cur_range_sort] ,
+        --        [salary_cur_range] AS [Salary Range Current] ,
+        --        [salary_cur_range_sort] ,
+        --        CONVERT(VARCHAR(6), [Hire Date], 112) AS [Hire Year/Month] ,
+        --        CONVERT(VARCHAR(6), [Termination Date], 112) AS [Termination Year/Month] ,
+        --        [Termination Reason] ,
+        --        [Termination Reason Code]
+        --INTO    fdt.[Dim Employee]
+        --FROM    [Prod_Ghost].[dwh].[data_employee];
 
-        ALTER TABLE  fdt.[Dim Employee]
-        ADD CONSTRAINT employee_key_pk3 PRIMARY KEY ([employee_key]);
+        --ALTER TABLE  fdt.[Dim Employee]
+        --ADD CONSTRAINT employee_key_pk3 PRIMARY KEY ([employee_key]);
 
 
 
@@ -560,14 +640,14 @@ AS
         ADD CONSTRAINT event_key_pk1 PRIMARY KEY (event_key);
 		 
 
-SELECT  [cat_event_key]
-       ,[event_id]
-       ,[category_id]
-       ,[category_description] AS [Category Name]
-       ,[event_description] [Event Name]
-	   ,[prevent_appt] as [Prevent Appt]
-  INTO fdt.[Dim Category and Event]
-  FROM [Prod_Ghost].[dwh].[data_category_event]
+        SELECT  [cat_event_key] ,
+                [event_id] ,
+                [category_id] ,
+                [category_description] AS [Category Name] ,
+                [event_description] [Event Name] ,
+                [prevent_appt] AS [Prevent Appt]
+        INTO    fdt.[Dim Category and Event]
+        FROM    [Prod_Ghost].[dwh].[data_category_event];
 	
 	
 		
@@ -585,9 +665,9 @@ SELECT  [cat_event_key]
                 [status_enc_billable] AS [Enc billable status] ,
                 [status_enc] AS [Status of Enc] ,
                 [status_appt_kept] AS [Appt was Kept] ,
-                [status_cancel_reason] AS [Appt cancel reason],
-				[status_charges] as [Enc had charges],
-				[status_pcpcrossbook] AS [Can crossbook with PCP]
+                [status_cancel_reason] AS [Appt cancel reason] ,
+                [status_charges] AS [Enc had charges] ,
+                [status_pcpcrossbook] AS [Can crossbook with PCP]
         INTO    fdt.[Dim Status Enc and Appt]
         FROM    [Prod_Ghost].[dwh].[data_enc_appt_status];
      
@@ -680,7 +760,9 @@ SELECT  [cat_event_key]
                      ELSE 'Patient Living'
                 END AS [Is Patient Deceased this Month] ,
                 First_enc_age_months AS [Membership Month] ,
-                
+                age_hx AS [Age Hx] ,
+                age_cur AS [Age Cur] ,
+
                
 			    -- Age update -- 
                 CASE WHEN age_hx <= 18 THEN '0-18 Years'
@@ -789,7 +871,8 @@ SELECT  [cat_event_key]
                 marital_status AS [Marital Status] ,
                 race AS [Race] ,
                 language AS [Language] ,
-                med_rec_nbr AS [Medical Record Number]
+                med_rec_nbr AS [Medical Record Number],
+				[Address Full]
         INTO    fdt.[Dim PHI Patient]
         FROM    dwh.data_person_dp_month;	
 		
@@ -958,15 +1041,15 @@ SELECT  [cat_event_key]
 --Build Bridge Tables--
 
 
-        SELECT  employee_key ,
-                employee_month_key
-        INTO    fdt.bridge_emp_to_emp_mon
-        FROM    dwh.data_employee_month;
+        --SELECT  employee_key ,
+        --        employee_month_key
+        --INTO    fdt.bridge_emp_to_emp_mon
+        --FROM    dwh.data_employee_month;
 
-        SELECT  employee_key ,
-                user_key
-        INTO    fdt.bridge_usr_emp
-        FROM    dwh.data_user;
+        --SELECT  employee_key ,
+        --        user_key
+        --INTO    fdt.bridge_usr_emp
+        --FROM    dwh.data_user;
 				
 /*
 

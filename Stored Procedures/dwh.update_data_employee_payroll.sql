@@ -21,7 +21,6 @@ AS
 
 
 
-        DROP TABLE #temp;
 
 --This payroll extract is still dropping employees who have left over a year ago (as far as I can tell)  Examples would be Chavon and Edwards
 
@@ -29,6 +28,7 @@ AS
 
         SELECT  
 --Important Keys 
+		  IDENTITY( INT, 1, 1 )  AS employee_payroll_key,
                 CASE WHEN COALESCE([Period Beginning Date], '') = '' THEN DATEADD(d, -13, [Period End Date - Check])
                      ELSE [Period Beginning Date]
                 END AS [Period Beginning Date] ,
@@ -620,11 +620,6 @@ AS
                 [Cost Number Worked In];
 		
 
-
-        SELECT  *
-        FROM    #temp
-        WHERE   [Payroll Name] LIKE '%fogel%'
-        ORDER BY [Pay date];
 
 --Custom Fixes for UDS
         UPDATE  dwh.data_adp_payroll

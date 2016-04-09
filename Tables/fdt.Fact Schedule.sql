@@ -1,6 +1,7 @@
 CREATE TABLE [fdt].[Fact Schedule]
 (
 [slot_key] [int] NOT NULL IDENTITY(1, 1),
+[resource_key] [int] NULL,
 [schedule_resource_key] [int] NULL,
 [slot_loc_key] [int] NULL,
 [category_key] [int] NULL,
@@ -18,14 +19,6 @@ CREATE TABLE [fdt].[Fact Schedule]
 [Nbr Slots Any Kind] [int] NULL,
 [Nbr Slots as Overbooked] [int] NULL
 ) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Fact Schedule] ADD CONSTRAINT [slot_key_pk4] PRIMARY KEY CLUSTERED  ([slot_key]) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Fact Schedule] ADD CONSTRAINT [FK_appt_date] FOREIGN KEY ([appt_date]) REFERENCES [fdt].[Dim Time] ([Key Date])
-GO
-ALTER TABLE [fdt].[Fact Schedule] ADD CONSTRAINT [FK_schedule_resource_key] FOREIGN KEY ([schedule_resource_key]) REFERENCES [fdt].[Dim Provider Rendering] ([user_key])
-GO
-ALTER TABLE [fdt].[Fact Schedule] ADD CONSTRAINT [FK_slot_loc_key] FOREIGN KEY ([slot_loc_key]) REFERENCES [fdt].[Dim Location for Enc or Appt] ([location_key])
-GO
-ALTER TABLE [fdt].[Fact Schedule] ADD CONSTRAINT [FK_appt6] FOREIGN KEY ([slot_time]) REFERENCES [fdt].[Dim Time of Day] ([Time of Slot])
+ALTER TABLE [fdt].[Fact Schedule] ADD 
+CONSTRAINT [slot_key_pk4] PRIMARY KEY CLUSTERED  ([slot_key]) ON [PRIMARY]
 GO

@@ -13,7 +13,7 @@ GO
 -- This allows location based role ups by medical home of the patient.  It also adds the healthpac
 -- ID of the location for reporting health pac information
 
---Dependencies - none
+--Dependencies - NONE, pulls directly from EHR
 --
 
 --Oustanding issues-- Need to create a flag for primary ID for clinics, as there are two medical homes for some clinics.
@@ -25,9 +25,9 @@ AS
     BEGIN
 
 
-        SET ANSI_NULLS ON;
+        SET ANSI_NULLS ON; --Treats NULL as a missing value, cannot be used with comparison operators
         SET QUOTED_IDENTIFIER ON;
-		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED --Allow for "dirty" reads
 
         IF OBJECT_ID('dwh.data_location') IS NOT NULL
             DROP TABLE dwh.data_location;
@@ -45,14 +45,17 @@ AS
               healthpac_id VARCHAR(4) ,
               location_name VARCHAR(100) ,
               site_id VARCHAR(3) ,
-              location_id_unique_flag INT
+              location_id_unique_flag INT,
+			  ecw_location_id INT NULL
             );
 
+		--Locations are manually entered to link location_id to site_id, which is not present in NextGen
         INSERT  INTO #Location_map
                 ( location_id, ud_demo3_id, healthpac_id, location_name, site_id, location_id_unique_flag )
         VALUES  ( 'CE01BF12-1DC0-4C09-9694-474C8EEA8327', '8125418E-7B63-4D4C-901B-63C0BFE95A53', '4002', NULL, '550',1 ),  -- LifeLong Ashby Health Center
                 ( 'E4CDE909-10FB-4B3E-8AEE-27298138F4AF', 'D3C9A792-EA26-4A26-9336-94399832CB79', '', NULL, NULL, 1 ),  --LifeLong Berkeley Primary Care
-                ( 'B9202BC6-62BF-43CB-A63D-B0F94159B6A3', '962C60B9-D7E0-452A-BF17-4A6ED6023E36', '', NULL, NULL,1 ),  --LifeLong Brookside Center
+                --( 'B9202BC6-62BF-43CB-A63D-B0F94159B6A3', '5DED0E87-411F-4323-9051-A6215EF8883E', '', NULL, '880',1 ),  --LifeLong Brookside Richmond
+				--( '7E24D5CB-1B46-4669-9D87-80ED80663402', '962C60B9-D7E0-452A-BF17-4A6ED6023E36', '', NULL,'890',1 ), --LifeLong Brookside San Pablo
                 ( '6EBE563F-39A4-49C1-936A-B6966CECFF7C', '578B940F-EC70-4D1D-9DEB-A2A3AE671719', '4008', NULL, '200', 1 ),  --LifeLong Dental Center
                 ( '9567D24D-2B4F-402B-A7CA-0546A85D8CF3', '453F0729-40D3-4CD8-BC8D-F30E3865A882', '4004', NULL, '840', 1 ),  --LifeLong Downtown Oakland Clinic
            --     ( '9567D24D-2B4F-402B-A7CA-0546A85D8CF3', '224AA5F3-6263-4811-9C40-A57595FAE72A', '4004' ,'LifeLong SHP/DOC'),  --Alternate spelling of medical home--LifeLong Downtown Oakland Clinic
@@ -73,7 +76,8 @@ AS
                 ( '5A972255-18DD-4F52-B4D2-F10C12C8F08F', 'D305AD2A-FBA9-4F77-9D03-4DFDEE33662C', '', NULL,'710', 1 ) ,    --LifeLong West Oakland Middle School
 			    ( 'DBA6D52D-26D1-4748-AFB7-218BAF850E33', '11111111-FBA9-4F77-9D03-4DFDEE33662C', '', NULL, '510', 1 ) ,  --LifeLong Urgent Care Berkeley
 		        ( '4B364AA9-7538-4628-9EFC-EADAA55B1E14', 'F5CED195-9897-4346-8F25-EA07228B680D', '', NULL, '860', 1 ),    --LifeLong Trust Health Center
-			    ( 'B4552247-7927-4944-8000-C70CFC0EDE7F', '11111111-FBA9-4F77-9D03-4DFDEE33662C', '', NULL, '865', 1 )     --LifeLong Pinole Health Center	
+			    ( 'B4552247-7927-4944-8000-C70CFC0EDE7F', '11111111-FBA9-4F77-9D03-4DFDEE33662C', '', NULL, '865', 1 ),     --LifeLong Pinole Health Center
+				('B278DB62-DA87-46B9-A17F-7227A275D3FC', 'A44A6366-D97C-483F-BF38-2FA8849AF573 ', '', NULL, '875',1) --LifeLong Rodeo Health Center
 			
 				;
 
@@ -101,9 +105,11 @@ AS
                     lm.ud_demo3_id ,
                     lm.healthpac_id ,
                     loc.location_name AS location_mstr_name ,
+					--If an item exists in the mstr_lists table, it is preferred as Medical Home name
                     COALESCE(ml.mstr_list_item_desc, loc.location_name) AS location_mh_name ,
 					lm.site_id,
-                    COALESCE(lm.location_id_unique_flag, 1) AS location_id_unique_flag
+                    COALESCE(lm.location_id_unique_flag, 1) AS location_id_unique_flag,
+					lm.ecw_location_id
             INTO    dwh.data_location
             FROM    location_clean loc
                     LEFT OUTER JOIN #Location_map lm ON lm.location_id = loc.location_id
@@ -119,6 +125,15 @@ AS
 */
 
 
+/*
+ECW clinics are loaded separately, as they use integers instead of UNIQUEIDENTIFIER for their location IDs
+*/
+		INSERT INTO dwh.data_location
+		(location_mstr_name, location_mh_name, site_id, location_id_unique_flag,ecw_location_id)
+		VALUES
+		('LifeLong Brookside San Pablo','LifeLong Brookside San Pablo','890',1,19),
+		('LifeLong Brookside Richmond','LifeLong Brookside Richmond','880',1,4),
+		('LifeLong Brookside Urgent Care','LifeLong Brookside Urgent Care','894',1,23)--Urgent Care and San Pablo use same site code, so not unique
 
 
         ALTER TABLE dwh.data_location

@@ -6,5 +6,3 @@ CREATE TABLE [fdt].[Fact Budget]
 [Budgeted Encounters] [int] NULL
 ) ON [PRIMARY]
 GO
-ALTER TABLE [fdt].[Fact Budget] ADD CONSTRAINT [FK_location_key99] FOREIGN KEY ([location_key]) REFERENCES [fdt].[Dim Location for Enc or Appt] ([location_key])
-GO

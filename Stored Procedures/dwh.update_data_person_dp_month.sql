@@ -118,71 +118,77 @@ AS
 
         SET @build_dt_start = '20100301';
 
-		
+		 
          SELECT distinct  per_mon_id ,
                                 nbr_bill_enc
                        INTO #enc_app
-					   FROM     dwh.data_appointment
+					   FROM     Prod_Ghost.dwh.data_appointment
                        WHERE    nbr_bill_enc = 1
-                     
+
+            --Check for an encounter over a given period of time to determine whether a patient was active during that period        
             SELECT 
                     dp.* ,
-                    MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 2 PRECEDING AND CURRENT ROW ) AS nbr_pt_act_3m ,
-                    MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 5 PRECEDING AND CURRENT ROW ) AS nbr_pt_act_6m ,
-                    MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 11 PRECEDING AND CURRENT ROW ) AS nbr_pt_act_12m ,
-                    MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 17 PRECEDING AND CURRENT ROW ) AS nbr_pt_act_18m ,
-                    MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 23 PRECEDING AND CURRENT ROW ) AS nbr_pt_act_24m ,
-                    IIF(MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 2 PRECEDING AND CURRENT ROW ) = 0, 1, 0) AS nbr_pt_inact_3m ,
-                    IIF(MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 5 PRECEDING AND CURRENT ROW ) = 0, 1, 0) AS nbr_pt_inact_6m ,
-                    IIF(MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 11 PRECEDING AND CURRENT ROW ) = 0, 1, 0) AS nbr_pt_inact_12m ,
-                    IIF(MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 17 PRECEDING AND CURRENT ROW ) = 0, 1, 0) AS nbr_pt_inact_18m ,
-                    IIF(MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 23 PRECEDING AND CURRENT ROW ) = 0, 1, 0) AS nbr_pt_inact_24m ,
-                   
-				   
-				    -- I am planning to dropping the lost fields as they don't seem to add much analytical value over inactive.
-				    CASE WHEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS 3 PRECEDING ) = 0
-                              AND ISNULL(ea.nbr_bill_enc, 0) = 0
-                              AND dp.First_enc_age_months > 3
-                              AND DATEDIFF(MONTH, CAST(@build_dt_start AS DATE), dp.first_mon_date) > 3 THEN 1
-                         ELSE 0
-                    END AS nbr_pt_lost_3m ,
-                    CASE WHEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS 6 PRECEDING ) = 0
-                              AND ISNULL(ea.nbr_bill_enc, 0) = 0
-                              AND dp.First_enc_age_months > 6
-                              AND DATEDIFF(MONTH, CAST(@build_dt_start AS DATE), dp.first_mon_date) > 6 THEN 1
-                         ELSE 0
-                    END AS nbr_pt_lost_6m ,
-                    CASE WHEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS 12 PRECEDING ) = 0
-                              AND ISNULL(ea.nbr_bill_enc, 0) = 0
-                              AND dp.First_enc_age_months > 12
-                              AND DATEDIFF(MONTH, CAST(@build_dt_start AS DATE), dp.first_mon_date) > 12 THEN 1
-                         ELSE 0
-                    END AS nbr_pt_lost_12m ,
-                    CASE WHEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS 18 PRECEDING ) = 0
-                              AND ISNULL(ea.nbr_bill_enc, 0) = 0
-                              AND dp.First_enc_age_months > 18
-                              AND DATEDIFF(MONTH, CAST(@build_dt_start AS DATE), dp.first_mon_date) > 18 THEN 1
-                         ELSE 0
-                    END AS nbr_pt_lost_18m ,
-                    CASE WHEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS 24 PRECEDING ) = 0
-                              AND ISNULL(ea.nbr_bill_enc, 0) = 0
-                              AND dp.First_enc_age_months > 24
-                              AND DATEDIFF(MONTH, CAST(@build_dt_start AS DATE), dp.first_mon_date) > 24 THEN 1
-                         ELSE 0
-                    END AS nbr_pt_lost_24m ,
+					CASE
+						WHEN dp.ng_data = 1 THEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 2 PRECEDING AND CURRENT ROW ) 
+						ELSE  MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id_ecw ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 2 PRECEDING AND CURRENT ROW )
+					END
+						AS nbr_pt_act_3m ,
+					CASE
+						WHEN dp.ng_data = 1 THEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 5 PRECEDING AND CURRENT ROW ) 
+						ELSE MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id_ecw ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 5 PRECEDING AND CURRENT ROW )
+					END
+						AS nbr_pt_act_6m ,
+					CASE
+						WHEN dp.ng_data = 1 THEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 11 PRECEDING AND CURRENT ROW ) 
+						ELSE MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id_ecw ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 11 PRECEDING AND CURRENT ROW )
+					END
+						AS nbr_pt_act_12m ,
+					CASE
+						WHEN dp.ng_data = 1 THEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 17 PRECEDING AND CURRENT ROW ) 
+						ELSE MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id_ecw ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 17 PRECEDING AND CURRENT ROW )
+					END
+						AS nbr_pt_act_18m ,
+                    CASE
+						WHEN dp.ng_data = 1 THEN MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 23 PRECEDING AND CURRENT ROW ) 
+						ELSE MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id_ecw ORDER BY dp.first_mon_date ASC  ROWS BETWEEN 23 PRECEDING AND CURRENT ROW )
+					END
+						AS nbr_pt_act_24m ,
+					--Currently no historical data for ECW pcp or mh
                     IIF(LAG(dp.mh_hx_key, 1) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC ) != dp.mh_hx_key, 1, 0) AS nbr_pt_mh_change ,
                     IIF(LAG(dp.pcp_hx_key, 1) OVER ( PARTITION BY dp.person_id ORDER BY dp.first_mon_date ASC ) != dp.pcp_hx_key, 1, 0) AS nbr_pt_pcp_change ,
-                    IIF(MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ) = 0, 1, 0) AS nbr_pt_never_active 
+					CASE
+						WHEN dp.ng_data = 1 THEN IIF(MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id ) = 0, 1, 0)
+						ELSE IIF(MAX(ISNULL(ea.nbr_bill_enc, 0)) OVER ( PARTITION BY dp.person_id_ecw ) = 0, 1, 0)
+					END
+						AS nbr_pt_never_active 
             
-			INTO dwh.data_person_dp_month        
+			INTO #temp1       
             FROM    dwh.data_person_nd_month dp
                     LEFT JOIN #enc_app ea ON ea.per_mon_id = dp.per_mon_id;  
 
+--clean up zip data by matching against a list of legitamate zip codes
+UPDATE  dp
+    
+	set  zip = (SELECT TOP 1 ez.zipcode FROM etl.data_zipcode ez WHERE LEFT(dp.[zip],5) = LEFT(ez.zipcode,5) )
+
+
+FROM  #temp1 dp
+
+--For a period where a patient is not listed as active, mark them inactive
+SELECT *, [address_line_1] +' ' +[address_line_2]+' '+[city]+' '+ [state]+' '+[zip] AS [Address Full],
+                    CASE WHEN COALESCE(nbr_pt_act_3m,0)=0 THEN 1 ELSE 0 end AS nbr_pt_inact_3m ,
+                    CASE WHEN COALESCE(nbr_pt_act_6m,0)=0 THEN 1 ELSE 0 END AS nbr_pt_inact_6m ,
+                    CASE WHEN COALESCE(nbr_pt_act_12m,0)=0 THEN 1 ELSE 0 END AS nbr_pt_inact_12m ,
+                    CASE WHEN COALESCE(nbr_pt_act_18m,0)=0 THEN 1 ELSE 0 END AS nbr_pt_inact_18m ,
+                    CASE WHEN COALESCE(nbr_pt_act_24m,0)=0 THEN 1 ELSE 0 END AS nbr_pt_inact_24m 
 
 
 
+ INTO dwh.data_person_dp_month FROM #temp1
 
-        ALTER TABLE Prod_Ghost.dwh.data_person_dp_month
+   
+
+	    ALTER TABLE Prod_Ghost.dwh.data_person_dp_month
         ADD CONSTRAINT per_mon_id_pk32 PRIMARY KEY (per_mon_id);
 
     END;

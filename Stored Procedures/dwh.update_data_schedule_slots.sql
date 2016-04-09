@@ -402,6 +402,7 @@ SET  @dt_end = (SELECT
      --   SET IDENTITY_INSERT dwh.data_schedule_slots OFF;
         INSERT  INTO dwh.data_schedule_slots
                 ( schedule_resource_key ,
+				  resource_key,
                   slot_loc_key ,
                   category_key ,
                   resource_id ,
@@ -420,6 +421,7 @@ SET  @dt_end = (SELECT
                   nbr_slots_overbook
                 )
                 SELECT  NULL AS schedule_resource_key ,
+				        NULL AS resource_key,
                         NULL AS slot_loc_key ,
                         NULL AS category_key ,
                         resource_id ,
@@ -450,6 +452,13 @@ SET  @dt_end = (SELECT
                                           ORDER BY  du.unique_resource_id_flag ASC ,
                                                     du.unique_provider_id_flag ASC
                                         ) ,
+                   resource_key = (SELECT TOP 1 resource_key FROM dwh.data_resource dr
+				                     WHERE dr.resource_id=os.resource_id
+									 AND os.resource_id IS NOT null),
+
+
+
+
                 provider_id = ( SELECT TOP 1
                                                     du.provider_id
                                           FROM      dwh.data_user du

@@ -10,5 +10,3 @@ CREATE TABLE [fdt].[Dim Employee Historical]
 GO
 ALTER TABLE [fdt].[Dim Employee Historical] ADD CONSTRAINT [employee_month_key_pk10] PRIMARY KEY CLUSTERED  ([employee_month_key]) ON [PRIMARY]
 GO
-ALTER TABLE [fdt].[Dim Employee Historical] ADD CONSTRAINT [FK_employee_key71] FOREIGN KEY ([employee_key]) REFERENCES [fdt].[Dim Employee] ([employee_key])
-GO

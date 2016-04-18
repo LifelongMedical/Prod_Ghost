@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -18,15 +19,16 @@ corresponding to the lab order.
 */
 -- =============================================
 
-	IF OBJECT_ID('dwh.data_lab_order') IS NOT NULL
-		DROP TABLE dwh.data_lab_order
 
-	IF OBJECT_ID('dwh.data_lab_result') IS NOT NULL
-		DROP TABLE dwh.data_lab_result
+	IF OBJECT_ID('dwh.data_labs') IS NOT NULL
+		DROP TABLE dwh.data_labs
 
-	IF OBJECT_ID('tempdb..#temp_res') IS NOT NULL
-		DROP TABLE #temp_res
-
+	IF OBJECT_ID('tempdb..#temp_ord') IS NOT NULL
+		DROP TABLE #temp_ord
+	IF OBJECT_ID('tempdb..#temp_lab') IS NOT NULL
+		DROP TABLE #temp_lab
+	IF OBJECT_ID('tempdb..#lab_final') IS NOT NULL
+		DROP TABLE #lab_final
 /*
 Currently tracking labs results based on text match in the description,
 but considering the move to loinc codes. Have to first do some digging to
@@ -34,11 +36,10 @@ see how consistently the codes are used/generated  4/4/16  JTA
 */
 
 
---Create a dwh table to hold Lab Orders
-SELECT DISTINCT 
+--Pull orders into a temporary table with related keys
+SELECT 
        app.enc_appt_key,
        per.per_mon_id,
-	   --loc.location_key AS test_loc_key, --Slowed down the process, didn't seem like a useable value
 	   prov.provider_key AS ordering_prov_key,
 	   creat.user_key AS create_user_key,
 	   mod.user_key AS mod_user_key
@@ -46,7 +47,7 @@ SELECT DISTINCT
       ,ord.[test_status]
       ,ord.[ngn_status]
       ,ord.[test_desc]
-      ,ord.[delete_ind]
+      ,ord.[delete_ind] AS ord_delete_ind
       ,ord.[order_control]
       ,ord.[order_priority]
       ,ord.[time_entered]
@@ -56,8 +57,8 @@ SELECT DISTINCT
       ,ord.[cancel_reason]
       ,ord.[ufo_num]
       ,ord.[lab_id]
-      ,ord.[create_timestamp]
-      ,ord.[modify_timestamp]
+      ,ord.[create_timestamp] AS order_create_date
+      ,ord.[modify_timestamp] AS order_modify_date
       ,ord.[generated_by]
       --,ord.[paq_provider_id]
       --,ord.[referring_provider_id]
@@ -79,7 +80,7 @@ SELECT DISTINCT
 		WHEN ord.[completed_ind] = 'Y' THEN 'Complete'
 		ELSE 'Incomplete'
 	  END
-		AS completed_ind
+		AS ng_completed_ind
 	  ,CASE
 		WHEN ord.test_desc LIKE 'HIV%' THEN 1
 		ELSE 0
@@ -88,31 +89,24 @@ SELECT DISTINCT
   INTO #temp_ord
   FROM [10.183.0.94] .[NGProd]. [dbo].[lab_nor] ord 
   LEFT JOIN dwh. data_appointment app  ON ord.enc_id = app.enc_id
-  --LEFT JOIN dwh.data_location loc  ON loc.location_id = ord.test_location
-  LEFT JOIN dwh.data_person_dp_month per ON (ord.person_id = per.person_id AND per.first_mon_date=CAST(CONVERT(CHAR(6),ord.create_timestamp,112)+'01' AS date))
+  LEFT JOIN dwh.data_person_nd_month per ON (ord.person_id = per.person_id AND per.first_mon_date=CAST(CONVERT(CHAR(6),ord.create_timestamp,112)+'01' AS date))
   LEFT JOIN dwh.data_provider prov ON prov.provider_id=ord.ordering_provider
   LEFT JOIN dwh.data_user_v2 creat   ON creat.user_id=ord.created_by
   LEFT JOIN dwh.data_user_v2 mod  ON mod.user_id=ord.modified_by
 
-  --Key must be inserted separately, otherwise it interferes with select distinct
-  SELECT
-	IDENTITY(INT,1,1) AS lab_ord_key,
-	ord.*
-  INTO dwh.data_lab_order
-  FROM #temp_ord ord
 
-  DROP TABLE #temp_ord
 
---Create a dwh table to hold Lab Results.
+--Join orders table with results to create a master labs table
 SELECT 
-	   per.per_mon_id,
-	   ord.lab_ord_key
-      ,res.[unique_obr_num]
+		ord.*,
+	   ROW_NUMBER() OVER ( PARTITION BY res.person_id, CONVERT(CHAR(8), res.create_timestamp, 112) ORDER BY res.create_timestamp DESC ) AS Recency,
+      res.[unique_obr_num]
       ,res.[obx_seq_num]
       ,res.[value_type]
       ,res.[obs_id]
 	  ,res.[loinc_code]
       ,res.[observ_value]
+	  --ISNUMERIC() wasn't working, so this formula was created to create a decimal value from the result if possible
 	  ,Try_CAST( LEFT(SUBSTRING(observ_value, PATINDEX('%[0-9.]%', observ_value), 8000),
 		PATINDEX('%[^0-9.]%', SUBSTRING(observ_value, PATINDEX('%[0-9.]%', observ_value), 8000) + 'X') -1) AS DECIMAL(10,2)) 
 		AS cleaned_value
@@ -127,19 +121,15 @@ SELECT
       ,res.[prod_id_code1_txt]
       ,res.[signed_off_ind]
       ,res.[result_desc]
-      ,res.[delete_ind]
+      ,res.[delete_ind] AS res_delete_ind
       ,res.[comment_ind]
       ,res.[result_seq_num] --65536 or NULL
       ,res.[created_by]
-      ,res.[create_timestamp]
-      ,res.[modified_by]
-      ,res.[modify_timestamp]
-      --,res.[last_change_dt_tz] --0 or NULL
-      --,[obs_date_time_tz] --0 or NULL
-      --,[create_timestamp_tz] --0 Only
-      --,[modify_timestamp_tz] --0 Only
+      ,res.[create_timestamp] AS result_date
+      ,res.[modified_by] 
+      ,res.[modify_timestamp] AS result_mod_date
       ,res.[clinical_name]
-      ,res.[result_comment]
+      --,res.[result_comment] --Adds 10 minutes to the procedure, considering dropping it
       ,res.[units_batt_id],
 	  --Couldn't find a distinctive code for an HIV test/result, so matching on test
 	  CASE
@@ -163,14 +153,13 @@ SELECT
 		ELSE 0
 	  END
 		AS t_cell_test
-  INTO #temp_res
-  FROM [10.183.0.94] .[NGProd]. [dbo].lab_results_obx res
-  --results_obr_p is the bridge which holds borth obr_num and order_num
-  LEFT JOIN [10.183.0.94] .[NGProd].[dbo].[lab_results_obr_p] p WITH(NOLOCK) ON res.unique_obr_num=p.unique_obr_num
-  LEFT JOIN dwh.data_lab_order ord ON ord.order_num=p.ngn_order_num
-  LEFT JOIN dwh.data_person_dp_month per ON (res.person_id = per.person_id AND per.first_mon_date=CAST(CONVERT(CHAR(6),res.create_timestamp,112)+'01' AS date))
+  INTO #temp_lab
+  FROM #temp_ord ord
+  LEFT JOIN [10.183.0.94] .[NGProd].[dbo].[lab_results_obr_p] p WITH(NOLOCK) ON ord.order_num=p.ngn_order_num
+  LEFT JOIN [10.183.0.94] .[NGProd]. [dbo].lab_results_obx res WITH(NOLOCK) ON res.unique_obr_num=p.unique_obr_num
 
 
+  --Add a primary key, calculate ranges for the chronic conditions we are currently tracking
   SELECT
 	IDENTITY (INT,1,1) AS lab_res_key,
 	res.*,
@@ -225,8 +214,38 @@ SELECT
 		ELSE 0
 	END
 		AS pre_diab_flag  
-  INTO dwh.data_lab_result
-  FROM #temp_res res
+  INTO #lab_final
+  FROM #temp_lab res
+
+
+    SELECT 
+		f.*,
+		CASE
+			WHEN f.hiv_pos_res = 1 THEN 'HIV Positive'
+			WHEN f.pre_diab_flag = 1 THEN 'Diabetes'
+			WHEN f.hiv_inc_res = 1 THEN 'HIV Preliminary Positive'
+			ELSE NULL
+		END 
+			AS lab_result_dx,
+		CASE
+			WHEN f.cd4_cell_range IS NOT NULL THEN 'CD4 Cells'
+			WHEN f.hb_a1c_range IS NOT NULL THEN 'Hemoglobin A1C'
+			ELSE 'Other'
+		END
+			AS type,
+		CASE
+			WHEN f.cd4_cell_range IS NOT NULL THEN f.cd4_cell_range
+			WHEN f.hb_a1c_range IS NOT NULL THEN f.hb_a1c_range
+			ELSE NULL 
+		END
+			AS range,
+		CASE
+			WHEN f.result_date IS NULL THEN 0
+			ELSE 1
+		END
+			AS count_complete_order
+  INTO dwh.data_labs
+  FROM #lab_final f
 
 
 

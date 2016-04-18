@@ -32,12 +32,16 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 
         SET @build_dt_start = '20100301';
 
-        WITH    StatusCategorize
+
+        WITH    
+				--First table gets the user who changed the status, they will be considered the MA who roomed patient
+				StatusCategorize
                   AS ( SELECT   enc.rendering_provider_id ,
                                 CAST (enc.checkin_datetime AS DATE) AS Checkin_Date ,
                                 enc.location_id ,
                                 pah.[person_id] ,
                                 pah.[enc_id] ,
+								--Person who will be marked as MA, since they changed the status flag
                                 pah.[modified_by] status_user ,
                                 pah.[modify_timestamp] AS status_datetime ,
                                 pah.[txt_status] AS status_text ,
@@ -51,11 +55,13 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                                      WHEN txt_status LIKE '%charted%' THEN 3--'Charted'
                                      ELSE 4 --'Unknown'
                                 END AS status_category
-                       FROM     [10.183.0.94].NGProd.dbo.[pat_apt_status_hx_] pah
+								--Holds exam room, Ready for Provider Staturs
+                       FROM     [10.183.0.94].NGProd.dbo.[pat_apt_status_hx_] pah 
                                 INNER JOIN [10.183.0.94].NGProd.dbo.patient_encounter enc ON pah.enc_id = enc.enc_id
                        WHERE    ( CAST(enc.checkin_datetime AS DATE) >= ( CAST(@build_dt_start AS DATE) ) )
                                 AND ( CAST(enc.checkin_datetime AS DATE) <= CAST(@build_dt_end AS DATE) )
                      ),
+		        --Use row_number() to rank the the most recently set statuses, by encounter
                 statusorg
                   AS ( SELECT   rendering_provider_id ,
                                 location_id ,
@@ -67,10 +73,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                                 checkin_datetime ,
                                 status_datetime ,
                                 status_category ,
-                                rank_order_old_first = ROW_NUMBER() OVER ( PARTITION BY enc_id, status_category ORDER BY status_datetime DESC ) , --Only grab the last of the same type of status msg
+								--Only grab the last status of the same type and encounter_id
+                                rank_order_old_first = ROW_NUMBER() OVER ( PARTITION BY enc_id, status_category ORDER BY status_datetime DESC ) , 
                                 rank_order_new_first = ROW_NUMBER() OVER ( PARTITION BY enc_id, status_category ORDER BY status_datetime ASC )
                        FROM     StatusCategorize
                      ),
+
                 statusfilter
                   AS ( SELECT   rendering_provider_id ,
                                 [enc_id] ,
@@ -82,7 +90,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                                 [status_datetime] ,
                                 [status_text] ,
                                 [status_category] ,
+								--Calculate time from arrival until patient is roomed
                                 DATEDIFF(mi, checkin_datetime, status_datetime) AS Min_Kept_to_StatusUpdate ,
+								--Calculate time from rooming until next status update, whatever that may be
                                 ( DATEDIFF(mi, checkin_datetime, status_datetime)
                                   - LAG(DATEDIFF(mi, checkin_datetime, status_datetime), 1, 0) OVER ( PARTITION BY enc_id ORDER BY status_datetime ) ) AS Min_Since_Last_StatusUpdate
                        FROM     statusorg x
@@ -161,9 +171,10 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                               OR x.cycle_min_readyforprovider_checkout < 0 THEN NULL ELSE x.cycle_min_readyforprovider_checkout
                     END AS cycle_min_readyforprovider_checkout ,
                     x.enc_id ,
+					--pulls enc_appt_key, but still referenced as enc_key, so as not to interfere with primary key references
                     ( SELECT TOP 1
-                                enc_key
-                      FROM      dwh.data_encounter de
+                                de.enc_appt_key
+                      FROM      dwh.data_appointment de
                       WHERE     de.enc_id = x.enc_id
                                 AND x.enc_id IS NOT NULL
                     ) AS enc_key ,
@@ -189,11 +200,11 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
             FROM    statusfinal x;
 
 
-        ALTER TABLE Prod_Ghost.dwh.data_status
-        ALTER COLUMN enc_key INTEGER NOT NULL;
+        --ALTER TABLE Prod_Ghost.dwh.data_status
+        --ALTER COLUMN enc_key INTEGER NOT NULL;
 
-        ALTER TABLE Prod_Ghost.dwh.data_status
-        ADD CONSTRAINT enc_key_pk20 PRIMARY KEY (enc_key);
+        --ALTER TABLE Prod_Ghost.dwh.data_status
+        --ADD CONSTRAINT enc_key_pk20 PRIMARY KEY (enc_key);
   
 		
 

@@ -1,6 +1,7 @@
 CREATE TABLE [dwh].[data_person_nd_month]
 (
 [per_mon_id] [int] NOT NULL IDENTITY(1, 1),
+[person_key] [int] NOT NULL,
 [person_id] [uniqueidentifier] NULL,
 [person_id_ecw] [int] NULL,
 [first_mon_date] [date] NULL,
@@ -40,4 +41,8 @@ CREATE TABLE [dwh].[data_person_nd_month]
 [med_rec_nbr] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [ng_data] [int] NULL
 ) ON [PRIMARY]
+ALTER TABLE [dwh].[data_person_nd_month] ADD 
+CONSTRAINT [per_mon_id_pk] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
+CREATE NONCLUSTERED INDEX [IX_person_mon_x_first_mon_date2] ON [dwh].[data_person_nd_month] ([per_mon_id], [first_mon_date]) ON [PRIMARY]
+
 GO

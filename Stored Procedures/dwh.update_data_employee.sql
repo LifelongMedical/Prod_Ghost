@@ -4,9 +4,10 @@ GO
 SET ANSI_NULLS ON
 GO
 -- =============================================
--- Author:		<Author,,Name>
--- Create date: <Create Date,,>
--- Description:	<Description,,>
+-- Author:		<Benjamin Mansalis>
+-- Create date: <December 2, 2015 >
+-- Description:	Takes the ETL'd employee roster
+-- and breaks down pay data for reporting
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_employee]
 AS
@@ -18,51 +19,78 @@ AS
         IF OBJECT_ID('dwh.data_employee') IS NOT NULL
             DROP TABLE dwh.data_employee;
 
-        SELECT  IDENTITY( INT, 1, 1 )  AS employee_key ,
+        SELECT  
+				IDENTITY( INT, 1, 1 )  AS employee_key ,
+				/* Home Cost Number holds location, account, fund, project etc..
+				Here we break it's components into their own separate columns for reporting
+				*/
                 SUBSTRING([Home Cost Number], 1, CASE CHARINDEX('-', [Home Cost Number])
                                                    WHEN 0 THEN LEN([Home Cost Number])
                                                    ELSE CHARINDEX('-', [Home Cost Number]) - 1
-                                                 END) AS cn_account_code ,
+                                                 END) 
+													AS cn_account_code ,
                 SUBSTRING([Home Cost Number], 1, 2) AS cn_account_code_sub ,
                 SUBSTRING([Home Cost Number], CASE CHARINDEX('-', [Home Cost Number])
                                                 WHEN 0 THEN LEN([Home Cost Number]) + 1
                                                 ELSE CHARINDEX('-', [Home Cost Number]) + 1
-                                              END, 3) AS cn_site ,
+                                              END, 3) 
+												AS cn_site ,
                 SUBSTRING([Home Cost Number], CASE CHARINDEX('-', [Home Cost Number], 7)
                                                 WHEN 0 THEN LEN([Home Cost Number]) + 1
                                                 ELSE CHARINDEX('-', [Home Cost Number], 7) + 1
-                                              END, 2) AS cn_fund ,
+                                              END, 2) 
+												AS cn_fund ,
                 SUBSTRING([Home Cost Number], CASE CHARINDEX('-', [Home Cost Number], 11)
                                                 WHEN 0 THEN LEN([Home Cost Number]) + 1
                                                 ELSE CHARINDEX('-', [Home Cost Number], 11) + 1
-                                              END, 1) AS cn_dir_indir ,
+                                              END, 1) 
+												AS cn_dir_indir ,
                 SUBSTRING([Home Cost Number], CASE CHARINDEX('-', [Home Cost Number], 14)
                                                 WHEN 0 THEN LEN([Home Cost Number]) + 1
                                                 ELSE CHARINDEX('-', [Home Cost Number], 14) + 1
-                                              END, 2) AS cn_category ,
+                                              END, 2) 
+												AS cn_category ,
                 SUBSTRING([Home Cost Number], CASE CHARINDEX('-', [Home Cost Number], 16)
                                                 WHEN 0 THEN LEN([Home Cost Number]) + 1
                                                 ELSE CHARINDEX('-', [Home Cost Number], 16) + 1
                                               END, 4) AS cn_proj_grant ,
-                DATEDIFF(YEAR, [Date of Birth], GETDATE()) AS Age_cur ,
+                DATEDIFF(YEAR, [Date of Birth], GETDATE()) 
+					AS Age_cur ,
+
+				/*Bring in all the original roster data, including employee protected information, department,
+				manager reporting to, and job title
+				*/
                 ar.* ,
-                CASE WHEN COALESCE([2015 Flu Vaccine Declination Form], '') != '' THEN 'Form Completed'
+
+				--Check the status of required Flu and TB tests
+                CASE 
+					WHEN COALESCE([2015 Flu Vaccine Declination Form], '') != '' THEN 'Form Completed'
                      ELSE 'Unknown'
-                END AS flu_vac_2015_decline ,
-                CASE WHEN COALESCE([2015 Flu Vaccine Rec'd], '') != '' THEN 'Completed'
+					END 
+						AS flu_vac_2015_decline ,
+                CASE 
+					WHEN COALESCE([2015 Flu Vaccine Rec'd], '') != '' THEN 'Completed'
                      ELSE 'Unknown'
-                END AS flu_vac_2015_received ,
-                CASE WHEN COALESCE([2015 TB Test ], '') != '' THEN 'Completed'
+                END 
+					AS flu_vac_2015_received ,
+                CASE 
+					WHEN COALESCE([2015 TB Test ], '') != '' THEN 'Completed'
                      ELSE 'Unknown'
-                END AS tb_test_completed ,
+				END 
+					AS tb_test_completed ,
+
+				--Salaries/rates are truncated, not actually rounded
                 CAST( ROUND([Rate Amount], 0, 1) AS INTEGER) AS rounded_rate ,
                 CAST(ROUND([Annual Salary], 0, 1) AS INTEGER) AS rounded_salary ,
              
             
-                CASE WHEN [Rate Type] = 'Salary' THEN ROUND([Annual Salary] / ( 26 * 80 ), 0, 1)
+                CASE 
+					 WHEN [Rate Type] = 'Salary' THEN ROUND([Annual Salary] / ( 26 * 80 ), 0, 1)
                      WHEN [Rate Type] = 'Hourly' THEN ROUND([Annual Salary] / ( 26 * 80 ), 0, 1)
                      ELSE NULL
-                END AS rate_cur ,
+                END
+					AS rate_cur ,
+				--Manually finds an hourly pay for salaried employees
                 CASE WHEN [Annual Salary] / ( 26 * 80 ) < 5 THEN '$1-4 /hr'
                      WHEN [Annual Salary] / ( 26 * 80 ) < 10 THEN '$5-9 /hr'
                      WHEN [Annual Salary] / ( 26 * 80 ) < 15 THEN '$10-14 /hr'
@@ -88,8 +116,9 @@ AS
                      WHEN [Annual Salary] / ( 26 * 80 ) < 115 THEN '$110-114 /hr'
                      WHEN [Annual Salary] / ( 26 * 80 ) < 120 THEN '$115-119 /hr'
                      WHEN [Annual Salary] / ( 26 * 80 ) >= 120 THEN '>=$120 /hr'
-                END AS rate_cur_range ,
-
+                END 
+					AS rate_cur_range ,
+				--Ranks the hourly rate from lowest to highest, starting at index 1
 				CASE WHEN [Annual Salary] / ( 26 * 80 ) < 5 THEN 1
                      WHEN [Annual Salary] / ( 26 * 80 ) < 10 THEN 2
                      WHEN [Annual Salary] / ( 26 * 80 ) < 15 THEN 3
@@ -115,12 +144,13 @@ AS
                      WHEN [Annual Salary] / ( 26 * 80 ) < 115 THEN 23
                      WHEN [Annual Salary] / ( 26 * 80 ) < 120 THEN 24
                      WHEN [Annual Salary] / ( 26 * 80 ) >= 120 THEN 25 
-                END AS rate_cur_range_sort ,
+                END 
+					AS rate_cur_range_sort ,
 
 
 
 
-
+				--Manually calculate the salary ranges
                 CASE WHEN [Annual Salary] < 5000 THEN '$0-4,999 /year'
                      WHEN [Annual Salary] < 10000 THEN '$5,000-9,000 /year'
                      WHEN [Annual Salary] < 20000 THEN '$10,000-19,999 /year'
@@ -155,7 +185,7 @@ AS
                      WHEN [Annual Salary] < 310000 THEN '$300,000-309,999 /year'
                      WHEN [Annual Salary] >= 310000 THEN '>=$310,000 /year'
                 END AS salary_cur_range,
-
+				--Rank salary ranges from lowest to highest
 				CASE WHEN [Annual Salary] < 5000 THEN 1
                      WHEN [Annual Salary] < 10000 THEN 2
                      WHEN [Annual Salary] < 20000 THEN 3

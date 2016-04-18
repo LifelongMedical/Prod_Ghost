@@ -9,7 +9,7 @@ GO
 
 --4/7/2016 Hanife Fact and Dim Vital Signs logic completely changed by request. added Type and Value
 -- =============================================
-CREATE PROCEDURE [fdt].[update_patient_vital_signs]
+CREATE PROCEDURE [fdt].[update_vital_signs]
 	-- Add the parameters for the stored procedure here
 	
 AS

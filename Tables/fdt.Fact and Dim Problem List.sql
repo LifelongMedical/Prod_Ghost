@@ -15,6 +15,6 @@ CREATE TABLE [fdt].[Fact and Dim Problem List]
 [Chronic Dx] [int] NULL,
 [Dx Status] [varchar] (7) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL
 ) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Fact and Dim Problem List] ADD CONSTRAINT [PK__Fact and__D70A70B825DC8507] PRIMARY KEY CLUSTERED  ([prob_key]) ON [PRIMARY]
+ALTER TABLE [fdt].[Fact and Dim Problem List] ADD 
+CONSTRAINT [PK__Fact and__D70A70B8397E10CE] PRIMARY KEY CLUSTERED  ([prob_key]) ON [PRIMARY]
 GO

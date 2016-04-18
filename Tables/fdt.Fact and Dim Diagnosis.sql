@@ -14,6 +14,6 @@ CREATE TABLE [fdt].[Fact and Dim Diagnosis]
 [Hypertension Dx Count] [int] NOT NULL,
 [HIV Dx Count] [int] NOT NULL
 ) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Fact and Dim Diagnosis] ADD CONSTRAINT [PK__Fact and__5A3FD1459954C0F1] PRIMARY KEY CLUSTERED  ([Dx_key]) ON [PRIMARY]
+ALTER TABLE [fdt].[Fact and Dim Diagnosis] ADD 
+CONSTRAINT [PK__Fact and__5A3FD145476EFCC0] PRIMARY KEY CLUSTERED  ([Dx_key]) ON [PRIMARY]
 GO

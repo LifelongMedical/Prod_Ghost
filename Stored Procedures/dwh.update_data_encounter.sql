@@ -70,7 +70,9 @@ AS
                                 ( SELECT TOP 1
                                             per_mon_id
                                   FROM      dwh.data_person_nd_month per
-                                  WHERE     per.person_id = person_id
+								  --Only relevant to NG data currently, so ignore ECW per_mon_id
+                                  WHERE     ng_data = 1
+											AND per.person_id = person_id
                                             AND per.first_mon_date = CAST(CONVERT(CHAR(6), enc.billable_timestamp, 112)
                                             + '01' AS DATE)
                                 ) AS per_mon_id ,

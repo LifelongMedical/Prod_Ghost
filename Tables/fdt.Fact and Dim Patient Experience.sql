@@ -29,6 +29,6 @@ CREATE TABLE [fdt].[Fact and Dim Patient Experience]
 [Comments] [nvarchar] (max) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Created] [datetime] NULL
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Fact and Dim Patient Experience] ADD CONSTRAINT [PK__Fact and__61E7930DD4CC012A] PRIMARY KEY CLUSTERED  ([survey_key]) ON [PRIMARY]
+ALTER TABLE [fdt].[Fact and Dim Patient Experience] ADD 
+CONSTRAINT [PK__Fact and__61E7930DF34989E6] PRIMARY KEY CLUSTERED  ([survey_key]) ON [PRIMARY]
 GO

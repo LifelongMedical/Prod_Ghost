@@ -23,7 +23,7 @@ CREATE TABLE [fdt].[Dim Patient]
 [Age Current] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [age_cur_sort] [int] NOT NULL,
 [City] [varchar] (35) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[State] [varchar] (3) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[State] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Zipcode] [varchar] (5) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Gender] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Marital Status] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,

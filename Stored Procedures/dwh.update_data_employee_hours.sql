@@ -4,8 +4,8 @@ GO
 SET ANSI_NULLS ON
 GO
 -- =============================================
--- Author:		<Author,,Name>
--- Create date: <Create Date,,>
+-- Author:		<Benjamin Mansalis>
+-- Create date: <>
 -- Description:	<Description,,>
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_employee_hours]
@@ -24,7 +24,7 @@ AS
 
 
 
-
+		--ETL table comes from an SSIS job which imports an excel or csv report produced by payroll system
         SELECT  de.employee_key ,
 	            ah.[Pay Date] ,
                 [Type] AS status_type ,
@@ -37,6 +37,8 @@ AS
                                         AND 	ah.Site IS NOT NULL
                                ) as location_key,
 				ah.site,
+				--**DQ**
+					--Column not used, needs to be removed eventually
 					( SELECT TOP 1
                             provider_key
                   FROM      dwh.data_provider prov
@@ -58,8 +60,7 @@ AS
 				ah.[Worked Department]
 				
                
-		   
-     --INTO dwh.data_employee_hours
+		 
         INTO    #precomp
         FROM    etl.data_adp_hours ah
                 Left JOIN dwh.data_employee_v2 de ON RIGHT(ah.[Employee ID], 6) = de.[File Number];
@@ -68,7 +69,7 @@ AS
 		
 		        
               
-			  
+		--Create a composite key for employee status and rate
         SELECT  
 		ROW_NUMBER() OVER ( ORDER BY x1.status_type , x2.status_ec_tc , x3.status_ec_pr , x4.status_rate ) AS employee_hours_comp_key ,
                 x1.status_type ,

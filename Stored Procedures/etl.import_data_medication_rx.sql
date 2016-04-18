@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -185,6 +186,7 @@ per.per_mon_id,
 us.user_key AS prescribing_user_key,
 app.enc_appt_key,
 ph.first_mon_date,
+ph.person_id,
 ph.md_id,
 
 /*

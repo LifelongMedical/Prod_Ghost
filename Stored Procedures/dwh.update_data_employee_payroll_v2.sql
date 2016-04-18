@@ -1,11 +1,12 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
 -- =============================================
--- Author:		<Author,,Name>
--- Create date: <Create Date,,>
--- Description:	<Description,,>
+-- Author:		<Benjamin Mansalis>
+-- Create date: <February 23, 2016>
+-- Description:	
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_employee_payroll_v2]
 AS
@@ -18,7 +19,7 @@ AS
             DROP TABLE dwh.data_employee_payroll_v2;
 
 
---- Need to create a routine that assigns missing homecost number worked in by file number for new hires to the cost number that is inputted in their subsequent payrolls for new hires
+--- **DQ** , Need to create a routine that assigns missing homecost number worked in by file number for new hires to the cost number that is inputted in their subsequent payrolls for new hires
 --Also noted that we are dropping FTE for internal transfers on rehire payrol (first) they do not get a cost number worked in.
 --The Rehire logic is they get a term date and a rehire date, during transition it looks like cost number worked in is dropped
 --The internal transfers are not counted as terms because the payroll continues (No change to file number)
@@ -27,7 +28,7 @@ AS
         SELECT 
 
 
---Fix missing cost numbers by pulling in subsequent cost numbers
+--Fix missing cost numbers by using LAG() to pull in most recent existing cost number based on pay date
                 CASE WHEN [Cost Number Worked In] = ''
                           AND LAG([Cost Number Worked In], 1) OVER ( PARTITION BY [File Number] ORDER BY [Pay Date] DESC ) != ''
                      THEN LAG([Cost Number Worked In], 1) OVER ( PARTITION BY [File Number] ORDER BY [Pay Date] DESC )
@@ -59,7 +60,9 @@ AS
                           AND LAG([Cost Number Worked In], 10) OVER ( PARTITION BY [File Number] ORDER BY [Pay Date] DESC ) != ''
                      THEN LAG([Cost Number Worked In], 10) OVER ( PARTITION BY [File Number] ORDER BY [Pay Date] DESC )
                      ELSE [Cost Number Worked In]
-                END AS [Cost Number Worked In] ,
+                END 
+					AS [Cost Number Worked In] ,
+
                 [Home Cost Number - Check] ,
                 [Home Cost Number Desc - Check] ,
                 [Cost Number Worked In Desc] ,
@@ -376,7 +379,7 @@ AS
             @dt_end DATE ,
             @dt DATE;
   
-  
+		--Set end date based on most recent payroll date available
         SET @dt_end = ( SELECT  MAX([Pay Date])
                         FROM    [Prod_Ghost].[etl].[data_adp_payroll_v3]
                         WHERE   [Pay Date] != CAST('1900-01-01' AS DATE)
@@ -384,7 +387,7 @@ AS
 
  
 
-
+		
         SET @dt_start = DATEADD(d, -34, ( SELECT    MIN([Pay Date])
                                           FROM      [Prod_Ghost].[etl].[data_adp_payroll_v3]
                                           WHERE     [Pay Date] != CAST('1900-01-01' AS DATE)
@@ -582,7 +585,7 @@ AS
                 IDENTITY( INT, 1, 1 )  AS employee_payroll_key ,
 
    --Divide Payroll fields into static or repeating and ones that change
-   --Move static onces to roster and then model changing dimensions in Dim Payroll Hx
+   --Move static ones to roster and then model changing dimensions in Dim Payroll Hx
 
    --Static Fields
                 [File Number] ,
@@ -615,7 +618,8 @@ AS
                      WHEN [Rate Type Code] = 'S' THEN [Annual Salary] / ( 26 * [Standard Hours] )
                      WHEN [Rate Type Code] = 'H' THEN [Hourly Rate (001)]   -- [Annual Salary] / ( 26 * 80 )
                      ELSE NULL
-                END AS [Hourly Rate ADP (Based on ADP Salary or Hourly)] ,
+                END 
+					AS [Hourly Rate ADP (Based on ADP Salary or Hourly)] ,
                 [Annual Salary] AS [Annual Salary ADP not annualized] ,
                 CASE WHEN [Annual Salary] IS NULL
                           AND [Hourly Rate (001)] IS NULL THEN [Annual Salary]

@@ -1,6 +1,7 @@
 CREATE TABLE [dwh].[data_person_dp_month]
 (
 [per_mon_id] [int] NOT NULL,
+[person_key] [int] NOT NULL,
 [person_id] [uniqueidentifier] NULL,
 [person_id_ecw] [int] NULL,
 [first_mon_date] [date] NULL,
@@ -52,8 +53,15 @@ CREATE TABLE [dwh].[data_person_dp_month]
 [nbr_pt_inact_6m] [int] NOT NULL,
 [nbr_pt_inact_12m] [int] NOT NULL,
 [nbr_pt_inact_18m] [int] NOT NULL,
-[nbr_pt_inact_24m] [int] NOT NULL
+[nbr_pt_inact_24m] [int] NOT NULL,
+[last_enc_date] [date] NULL,
+[last_appt_date] [date] NULL,
+[last_enc_provider] [varchar] (52) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[last_appt_provider] [varchar] (52) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[next_appt_date] [date] NULL,
+[next_appt_provider] [varchar] (52) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
 ) ON [PRIMARY]
 ALTER TABLE [dwh].[data_person_dp_month] ADD 
 CONSTRAINT [per_mon_id_pk32] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
+
 GO

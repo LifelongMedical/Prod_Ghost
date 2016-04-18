@@ -5,7 +5,6 @@ CREATE TABLE [dwh].[data_appointment]
 [resource_id] [uniqueidentifier] NULL,
 [appt_loc_key] [int] NULL,
 [appt_loc_id] [uniqueidentifier] NULL,
-[enc_key] [int] NULL,
 [enc_id] [uniqueidentifier] NULL,
 [enc_loc_key] [int] NULL,
 [enc_loc_id] [uniqueidentifier] NULL,
@@ -13,6 +12,7 @@ CREATE TABLE [dwh].[data_appointment]
 [provider_key] [int] NULL,
 [enc_rendering_id] [uniqueidentifier] NULL,
 [per_mon_id] [int] NULL,
+[person_key] [int] NULL,
 [location_key] [int] NULL,
 [enc_appt_comp_key] [bigint] NULL,
 [event_key] [int] NULL,
@@ -90,5 +90,10 @@ CONSTRAINT [enc_appt_key_PK] PRIMARY KEY CLUSTERED  ([enc_appt_key]) ON [PRIMARY
 CREATE NONCLUSTERED INDEX [IX_person_mon_id1] ON [dwh].[data_appointment] ([per_mon_id]) ON [PRIMARY]
 
 CREATE NONCLUSTERED INDEX [IX_person_mon_x_first_mon_date1] ON [dwh].[data_appointment] ([per_mon_id], [first_mon_date]) ON [PRIMARY]
+
+
+
+
+
 
 GO

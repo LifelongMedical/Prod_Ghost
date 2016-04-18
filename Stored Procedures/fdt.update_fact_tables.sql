@@ -19,8 +19,9 @@ AS
 
         IF OBJECT_ID('fdt.[Fact Patient]') IS NOT NULL
             DROP TABLE fdt.[Fact Patient];
-        IF OBJECT_ID('fdt.[Fact Encounter]') IS NOT NULL
-            DROP TABLE fdt.[Fact Encounter];
+		--Deprecated Table
+        --IF OBJECT_ID('fdt.[Fact Encounter]') IS NOT NULL
+        --    DROP TABLE fdt.[Fact Encounter];
         IF OBJECT_ID('fdt.[Fact Encounter and Appointment]') IS NOT NULL
             DROP TABLE fdt.[Fact Encounter and Appointment];
         IF OBJECT_ID('fdt.fact_charge') IS NOT NULL
@@ -125,23 +126,23 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
         ADD CONSTRAINT per_mon_id_pk2 PRIMARY KEY (per_mon_id);
 					
       
+		--Deprecated table, dwh table also deprecated
+        --SELECT  enc_key ,
+        --        location_key ,
+        --        enc_bill_date ,
+        --        provider_key ,
+        --        per_mon_id ,
+        --        enc_comp_key ,
+        --        enc_creator_key ,
+        --        billable_enc_ct AS [Number of Billable Encounters] ,
+        --        qual_enc_ct AS [Number of Qualified Encounters] ,
+        --        enc_count AS [Number of Encounters Any Type]
+        --INTO    Prod_Ghost.fdt.[Fact Encounter]
+        --FROM    Prod_Ghost.dwh.data_encounter;
 
-        SELECT  enc_key ,
-                location_key ,
-                enc_bill_date ,
-                provider_key ,
-                per_mon_id ,
-                enc_comp_key ,
-                enc_creator_key ,
-                billable_enc_ct AS [Number of Billable Encounters] ,
-                qual_enc_ct AS [Number of Qualified Encounters] ,
-                enc_count AS [Number of Encounters Any Type]
-        INTO    Prod_Ghost.fdt.[Fact Encounter]
-        FROM    Prod_Ghost.dwh.data_encounter;
 
-
-        ALTER TABLE Prod_Ghost.fdt.[Fact Encounter]
-        ADD CONSTRAINT enc_key_pk1 PRIMARY KEY (enc_key);
+        --ALTER TABLE Prod_Ghost.fdt.[Fact Encounter]
+        --ADD CONSTRAINT enc_key_pk1 PRIMARY KEY (enc_key);
 
 
 

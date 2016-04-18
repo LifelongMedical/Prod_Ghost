@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -7,7 +8,7 @@ GO
 -- Create date: <Create Date,,4/1/2016>
 -- Description:	<Patients Vital Signs,,>
 
--- 4/7/2016 Added BMI,HEIGHT,WEIGHT by Hanife as requested.
+-- 4/7/2016 HD Added BMI,HEIGHT,WEIGHT 
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_vital_signs] 
 	

@@ -44,6 +44,6 @@ CREATE TABLE [fdt].[Fact and Dim Medication]
 [Rx Schedule IV] [int] NOT NULL,
 [Rx Schedule V] [int] NOT NULL
 ) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Fact and Dim Medication] ADD CONSTRAINT [PK__Fact and__8327AB4B7510F7D9] PRIMARY KEY CLUSTERED  ([med_key]) ON [PRIMARY]
+ALTER TABLE [fdt].[Fact and Dim Medication] ADD 
+CONSTRAINT [PK__Fact and__8327AB4BF9E888BF] PRIMARY KEY CLUSTERED  ([med_key]) ON [PRIMARY]
 GO

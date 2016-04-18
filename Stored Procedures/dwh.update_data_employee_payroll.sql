@@ -4,9 +4,9 @@ GO
 SET ANSI_NULLS ON
 GO
 -- =============================================
--- Author:		<Author,,Name>
+-- Author:		<Benjamin Mansalis>
 -- Create date: <Create Date,,>
--- Description:	<Description,,>
+-- Description:	deprecated, now using update_data_employee_payroll_v2
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_employee_payroll]
 AS

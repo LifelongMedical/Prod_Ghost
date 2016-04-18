@@ -3,7 +3,7 @@ CREATE TABLE [dwh].[data_patient_ecw]
 [ecw_patient_key] [int] NOT NULL,
 [patient_id] [int] NOT NULL,
 [pcp_id] [int] NOT NULL,
-[med_home_id] [numeric] (11, 0) NULL,
+[med_home_id_orig] [numeric] (11, 0) NULL,
 [patient_account_number] [varchar] (20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [last_name] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [first_name] [varchar] (60) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
@@ -24,6 +24,7 @@ CREATE TABLE [dwh].[data_patient_ecw]
 [language] [varchar] (50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [sex] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [marital_status] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[med_home_id] [numeric] (11, 0) NULL,
 [first_enc_date] [date] NULL
 ) ON [PRIMARY]
 GO

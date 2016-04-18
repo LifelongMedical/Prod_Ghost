@@ -12,6 +12,6 @@ CREATE TABLE [fdt].[Fact and Dim Vital Signs]
 [first_mon_date] [date] NULL,
 [enc_appt_key] [int] NULL
 ) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Fact and Dim Vital Signs] ADD CONSTRAINT [PK__Fact and__6688BB36A9AF11E5] PRIMARY KEY CLUSTERED  ([vital_signs_key]) ON [PRIMARY]
+ALTER TABLE [fdt].[Fact and Dim Vital Signs] ADD 
+CONSTRAINT [PK__Fact and__6688BB3675E2F4E6] PRIMARY KEY CLUSTERED  ([vital_signs_key]) ON [PRIMARY]
 GO

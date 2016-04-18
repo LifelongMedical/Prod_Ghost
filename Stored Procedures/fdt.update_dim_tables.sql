@@ -58,8 +58,9 @@ AS
 
 --Need to drop Fact and a few Dim Patient tables first because of FK constraints
 		
-        IF OBJECT_ID('fdt.[Dim Encounter Status]') IS NOT NULL
-            DROP TABLE fdt.[Dim Encounter Status];
+		--Deprecated
+        --IF OBJECT_ID('fdt.[Dim Encounter Status]') IS NOT NULL
+        --    DROP TABLE fdt.[Dim Encounter Status];
 					
         IF OBJECT_ID('fdt.[Dim Location for Enc or Appt]') IS NOT NULL
             DROP TABLE  fdt.[Dim Location for Enc or Appt];
@@ -69,9 +70,10 @@ AS
 
         IF OBJECT_ID('fdt.[Dim Provider Rendering]') IS NOT NULL
             DROP TABLE fdt.[Dim Provider Rendering];
-
-        IF OBJECT_ID('fdt.[Dim PHI Validate]') IS NOT NULL
-            DROP TABLE fdt.[Dim PHI Validate];	 
+		
+		--Deprecated
+        --IF OBJECT_ID('fdt.[Dim PHI Validate]') IS NOT NULL
+        --    DROP TABLE fdt.[Dim PHI Validate];	 
 
 
         IF OBJECT_ID('fdt.[Dim Time]') IS NOT NULL
@@ -141,18 +143,18 @@ AS
         ALTER TABLE   fdt.[Dim Time of Day]
         ADD CONSTRAINT appt_time_pk2 PRIMARY KEY ([Time of Slot]);
 			
-	
-        SELECT  DISTINCT
-                enc_comp_key ,
-                enc_comp_key_name AS [Encounter Status]
-        INTO    fdt.[Dim Encounter Status]
-        FROM    dwh.data_encounter;   
+		--Deprecated table in DWH
+        --SELECT  DISTINCT
+        --        enc_comp_key ,
+        --        enc_comp_key_name AS [Encounter Status]
+        --INTO    fdt.[Dim Encounter Status]
+        --FROM    dwh.data_encounter;   
 
-        ALTER TABLE fdt.[Dim Encounter Status]
-        ALTER COLUMN enc_comp_key BIGINT NOT NULL;
+        --ALTER TABLE fdt.[Dim Encounter Status]
+        --ALTER COLUMN enc_comp_key BIGINT NOT NULL;
 
-        ALTER TABLE  fdt.[Dim Encounter Status]
-        ADD CONSTRAINT enc_comp_key_pk PRIMARY KEY (enc_comp_key);
+        --ALTER TABLE  fdt.[Dim Encounter Status]
+        --ADD CONSTRAINT enc_comp_key_pk PRIMARY KEY (enc_comp_key);
 
 		
         SELECT  [PK_date] AS [Key Date] ,
@@ -244,7 +246,8 @@ AS
 
         SELECT  location_key ,
                 site_id ,
-                location_mstr_name AS [Location for Enc or Appt]
+                location_mstr_name AS [Location for Enc or Appt],
+				location_address AS [Location Address]
         INTO    fdt.[Dim Location for Enc or Appt]
         FROM    dwh.data_location;
 		
@@ -684,30 +687,30 @@ AS
 
 
 
-
-        SELECT  enc.enc_key ,
-                CAST(RIGHT('00000000000' + LTRIM(RTRIM(enc.enc_nbr)), 10) AS VARCHAR(10)) AS [Encounter Number] ,
-                per.med_rec_nbr AS [Medical Record Number] ,
-                per.full_name AS [Full Name] ,
-                loc.location_mstr_name AS [Location Name] ,
-                prov.provider_name AS [Rendering Provider Name] ,
-                enc.enc_bill_date AS [Encounter Bill Date] ,
-                enc.enc_comp_key_name AS [Encounter Status]
-        INTO    fdt.[Dim PHI Validate]
-        FROM    dwh.data_encounter enc
-                LEFT JOIN ( SELECT DISTINCT
-                                    person_id ,
-                                    full_name ,
-                                    med_rec_nbr
-                            FROM    dwh.data_person_dp_month
-                          ) per ON enc.person_id = per.person_id
-                LEFT JOIN dwh.data_location loc ON enc.location_key = loc.location_key
-                LEFT JOIN dwh.data_user prov ON enc.provider_key = prov.user_key; 
+		--Deprecated Table
+        --SELECT  enc.enc_key ,
+        --        CAST(RIGHT('00000000000' + LTRIM(RTRIM(enc.enc_nbr)), 10) AS VARCHAR(10)) AS [Encounter Number] ,
+        --        per.med_rec_nbr AS [Medical Record Number] ,
+        --        per.full_name AS [Full Name] ,
+        --        loc.location_mstr_name AS [Location Name] ,
+        --        prov.provider_name AS [Rendering Provider Name] ,
+        --        enc.enc_bill_date AS [Encounter Bill Date] ,
+        --        enc.enc_comp_key_name AS [Encounter Status]
+        --INTO    fdt.[Dim PHI Validate]
+        --FROM    dwh.data_encounter enc
+        --        LEFT JOIN ( SELECT DISTINCT
+        --                            person_id ,
+        --                            full_name ,
+        --                            med_rec_nbr
+        --                    FROM    dwh.data_person_dp_month
+        --                  ) per ON enc.person_id = per.person_id
+        --        LEFT JOIN dwh.data_location loc ON enc.location_key = loc.location_key
+        --        LEFT JOIN dwh.data_user prov ON enc.provider_key = prov.user_key; 
 				
 
 		
-        ALTER TABLE   fdt.[Dim PHI Validate]
-        ADD CONSTRAINT enc_key_pk10 PRIMARY KEY (enc_key);
+        --ALTER TABLE   fdt.[Dim PHI Validate]
+        --ADD CONSTRAINT enc_key_pk10 PRIMARY KEY (enc_key);
 			
 			
 
@@ -872,7 +875,13 @@ AS
                 race AS [Race] ,
                 language AS [Language] ,
                 med_rec_nbr AS [Medical Record Number],
-				[Address Full]
+				[Address Full],
+				last_appt_date AS [Last Appointment Date],
+				last_enc_date AS [Last Encounter Date],
+				next_appt_date AS [Next Appointment Date],
+				last_appt_provider AS [Last Appointment Provider],
+				last_enc_provider AS [Last Encounter Provider],
+				next_appt_provider AS [Next Appointment Provider]
         INTO    fdt.[Dim PHI Patient]
         FROM    dwh.data_person_dp_month;	
 		

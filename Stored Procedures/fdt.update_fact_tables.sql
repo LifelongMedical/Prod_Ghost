@@ -94,11 +94,148 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
 
         SELECT  per_mon_id ,
                 first_mon_date ,
+			
                 mh_cur_key ,
                 mh_hx_key ,
                 pcp_cur_key ,
                 pcp_hx_key ,
                 med_rec_nbr ,
+				    First_enc_age_months AS [Membership Month] ,
+                CASE WHEN First_enc_age_months <= 1 THEN '1 Month - New Patient'
+                     WHEN First_enc_age_months <= 6 THEN '2-6 Months'
+                     WHEN First_enc_age_months <= 12 THEN '7-12 Months - 1 Year'
+                     WHEN First_enc_age_months <= 24 THEN '13-24 Months- 2 Years'
+                     WHEN First_enc_age_months <= 36 THEN '25-36 Months- 3 Years'
+                     WHEN First_enc_age_months <= 48 THEN '37-48 Months- 4 Years'
+                     WHEN First_enc_age_months <= 60 THEN '49-60 Months- 5 Years'
+                     WHEN First_enc_age_months <= 120 THEN '61-120 Months- 6-10 Years'
+                     WHEN First_enc_age_months <= 180 THEN '121-180 Months- 11-15 Years'
+                     WHEN First_enc_age_months <= 240 THEN '181-240 Months- 15-20 Years'
+                     WHEN First_enc_age_months > 240 THEN '>240 Months- 20 Years'
+                END AS [Time as Member] ,
+                CASE WHEN First_enc_age_months <= 1 THEN 1
+                     WHEN First_enc_age_months <= 6 THEN 2
+                     WHEN First_enc_age_months <= 12 THEN 3
+                     WHEN First_enc_age_months <= 24 THEN 4
+                     WHEN First_enc_age_months <= 36 THEN 5
+                     WHEN First_enc_age_months <= 48 THEN 6
+                     WHEN First_enc_age_months <= 60 THEN 7
+                     WHEN First_enc_age_months <= 120 THEN 8
+                     WHEN First_enc_age_months <= 180 THEN 9
+                     WHEN First_enc_age_months <= 240 THEN 10
+                     WHEN First_enc_age_months > 240 THEN 11
+                END AS membership_time_sort ,
+                CASE WHEN nbr_new_pt = 1 THEN 'New Patient This Month'
+                     WHEN nbr_pt_seen_office_ever = 1 THEN 'Established Patient'
+                     ELSE 'Not a Patient Yet'
+                END AS [Is Patient New] ,
+                CASE WHEN nbr_pt_seen_office_ever = 1 THEN 'Established Patient'
+                     ELSE 'Has not Established Care'
+                END AS [Is Patient Established] ,
+                CASE WHEN nbr_pt_deceased = 1 THEN 'Patient Deceased'
+                     ELSE 'Patient Living'
+                END AS [Is Patient Alive] ,
+                CASE WHEN nbr_pt_deceased_this_month = 1 THEN 'Patient Deceased This Month'
+                     WHEN nbr_pt_deceased = 1 THEN 'Patient Deceased'
+                     ELSE 'Patient Living'
+                END AS [Is Patient Deceased this Month] ,
+                patient_vintage AS [Patient Vintage Month] ,
+                CASE WHEN patient_vintage <= '198912' THEN '<1990'
+                     WHEN patient_vintage <= '199412' THEN '1990-1994'
+                     WHEN patient_vintage <= '199912' THEN '1995-1999'
+                     WHEN patient_vintage <= '200412' THEN '2000-2004'
+                     WHEN patient_vintage <= '200912' THEN '2005-2009'
+                     WHEN patient_vintage <= '201012' THEN '2010'
+                     WHEN patient_vintage <= '201112' THEN '2011'
+                     WHEN patient_vintage <= '201212' THEN '2012'
+                     WHEN patient_vintage <= '201312' THEN '2013'
+                     WHEN patient_vintage <= '201412' THEN '2014'
+                     WHEN patient_vintage <= '201512' THEN '2015'
+                     WHEN patient_vintage <= '201612' THEN '2016'
+                     WHEN patient_vintage <= '201712' THEN '2017'
+                     WHEN patient_vintage <= '201812' THEN '2018'
+                     WHEN patient_vintage <= '201912' THEN '2019'
+                     WHEN patient_vintage <= '202012' THEN '2020'
+                     ELSE 'Unknown'
+                END AS [Patient Vintage Month Range] ,
+                CASE WHEN patient_vintage <= '198912' THEN 1
+                     WHEN patient_vintage <= '199412' THEN 2
+                     WHEN patient_vintage <= '199912' THEN 3
+                     WHEN patient_vintage <= '200412' THEN 4
+                     WHEN patient_vintage <= '200912' THEN 5
+                     WHEN patient_vintage <= '201012' THEN 6
+                     WHEN patient_vintage <= '201112' THEN 7
+                     WHEN patient_vintage <= '201212' THEN 8
+                     WHEN patient_vintage <= '201312' THEN 9
+                     WHEN patient_vintage <= '201412' THEN 10
+                     WHEN patient_vintage <= '201512' THEN 11
+                     WHEN patient_vintage <= '201612' THEN 12
+                     WHEN patient_vintage <= '201712' THEN 13
+                     WHEN patient_vintage <= '201812' THEN 14
+                     WHEN patient_vintage <= '201912' THEN 15
+                     WHEN patient_vintage <= '202012' THEN 16
+                     ELSE 17
+                END AS [Patient Vintage Month sort] ,
+                
+
+
+			    -- Age update -- 
+                CASE WHEN age_hx <= 18 THEN '0-18 Years'
+                     WHEN age_hx <= 29 THEN '19-29 Years'
+                     WHEN age_hx <= 39 THEN '30-39 Years'
+                     WHEN age_hx <= 49 THEN '40-49 Years'
+                     WHEN age_hx <= 59 THEN '50-59 Years'
+                     WHEN age_hx <= 64 THEN '60-64 Years'
+                     WHEN age_hx <= 74 THEN '65-74 Years'
+                     WHEN age_hx <= 79 THEN '75-79 Years'
+                     WHEN age_hx <= 89 THEN '80-89 Years'
+                     WHEN age_hx <= 99 THEN '90-99 Years'
+                     WHEN age_hx >= 100 THEN '>100 Years'
+                     ELSE 'Age Unknown'
+                END AS [Age Historical] ,
+                CASE WHEN age_hx <= 18 THEN 1
+                     WHEN age_hx <= 29 THEN 2
+                     WHEN age_hx <= 39 THEN 3
+                     WHEN age_hx <= 49 THEN 4
+                     WHEN age_hx <= 59 THEN 5
+                     WHEN age_hx <= 64 THEN 6
+                     WHEN age_hx <= 74 THEN 7
+                     WHEN age_hx <= 79 THEN 8
+                     WHEN age_hx <= 89 THEN 9
+                     WHEN age_hx <= 99 THEN 10
+                     WHEN age_hx >= 100 THEN 11
+                     ELSE 12
+                END AS Age_Hx_sort ,
+                CASE WHEN age_cur <= 18 THEN '0-18 Years'
+                     WHEN age_cur <= 29 THEN '19-29 Years'
+                     WHEN age_cur <= 39 THEN '30-39 Years'
+                     WHEN age_cur <= 49 THEN '40-49 Years'
+                     WHEN age_cur <= 59 THEN '50-59 Years'
+                     WHEN age_cur <= 64 THEN '60-64 Years'
+                     WHEN age_cur <= 74 THEN '65-74 Years'
+                     WHEN age_cur <= 79 THEN '75-79 Years'
+                     WHEN age_cur <= 89 THEN '80-89 Years'
+                     WHEN age_cur <= 99 THEN '90-99 Years'
+                     WHEN age_cur >= 100 THEN '>100 Years'
+                     ELSE 'Age Unknown'
+                END AS [Age Current] ,
+                CASE WHEN age_cur <= 18 THEN 1
+                     WHEN age_cur <= 29 THEN 2
+                     WHEN age_cur <= 39 THEN 3
+                     WHEN age_cur <= 49 THEN 4
+                     WHEN age_cur <= 59 THEN 5
+                     WHEN age_cur <= 64 THEN 6
+                     WHEN age_cur <= 74 THEN 7
+                     WHEN age_cur <= 79 THEN 8
+                     WHEN age_cur <= 89 THEN 9
+                     WHEN age_cur <= 99 THEN 10
+                     WHEN age_cur >= 100 THEN 11
+                     ELSE 12
+                END AS age_cur_sort ,
+
+
+
+
                 nbr_new_pt AS [Number of New Patients this Month] ,
                 nbr_pt_seen_office_ever AS [Number of Patient Members] ,
                 nbr_pt_deceased AS [Number of Patients Deceased] ,
@@ -116,7 +253,8 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
            
                 nbr_pt_mh_change AS [Number of Patients with Medical Home Change] ,
                 nbr_pt_pcp_change AS [Number of Patients with PCP Change] ,
-                nbr_pt_never_active AS [Number of Patients Never Active]
+                nbr_pt_never_active AS [Number of Patients Never Active],
+				person_key
         INTO    Prod_Ghost.fdt.[Fact Patient]
         FROM    Prod_Ghost.dwh.data_person_dp_month;
 

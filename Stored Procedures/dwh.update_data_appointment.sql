@@ -4,9 +4,23 @@ GO
 SET ANSI_NULLS ON
 GO
 -- =============================================
--- Author:		<Author,,Name>
+-- Author:		<Author,,>
 -- Create date: <Create Date,,>
 -- Description:	<Description,,>
+-- =============================================
+
+
+--Notes
+-- =============================================
+--Dependencies
+-- **DQ**
+-- =============================================
+
+
+--Updates
+-- =============================================
+--4/21/2016 HD I added left join with [dwh].[update_data_ngweb_enrollment] for email token project 
+
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_appointment]
 AS
@@ -106,6 +120,7 @@ link between appts and slots based on
               [appt_person_id] [UNIQUEIDENTIFIER] NULL ,
               [enc_person_id] [UNIQUEIDENTIFIER] NULL ,
               [enc_id] [UNIQUEIDENTIFIER] NULL ,
+			  [enc_id_ecw] INT NULL,
               [enc_nbr] [NUMERIC](12, 0) NULL ,
               [appt_person_id_ecw] [INT] NULL,
               [ecw_provider_id] [INT] NULL,
@@ -1208,14 +1223,21 @@ flag, and pull from a different location depending on if flag is NextGen (1) or 
                 'Unknown' AS pay1_finclass,
                 'Unknown' AS pay2_finclass,
                 'Unknown' AS pay3_finclass,
-                d.ng_data --to track NextGen vs ECW appointments
-
-
+                d.ng_data, --to track NextGen vs ECW appointments
+				en.[enrollment_status], --Token statue
+				en.[enrollment_created_time], --Token created time(modified time)
+				en.[email_address],--email address
+				en.[email_modified_time],--email address modified time 
+				CASE
+					WHEN en.enc_created_by=en.enrollment_created_by   THEN 1
+					ELSE 0
+				END AS enrollment_users_match
         INTO    dwh.data_appointment
         FROM    #appt_enc3 d
                 LEFT JOIN dwh.data_status ds ON (d.enc_id = ds.enc_id AND d.enc_id IS NOT NULL)
                 LEFT JOIN dwh.data_provider ecwp ON d.ecw_provider_id=ecwp.ecw_provider_key
                 LEFT JOIN dwh.data_location ecwl ON ecwl.ecw_location_id = d.ecw_location_id
+				LEFT JOIN [dwh].[data_ngweb_enrollment] en ON  en.[enc_id]=d.enc_id --Email Token Table
 				--Using Select Top 1 instead of join, perhaps a change to be made later
                 --LEFT JOIN dwh.data_person_nd_month per ON (per.person_id_ecw = d.appt_person_id_ecw
                 --                                       AND per.first_mon_date=CAST(CONVERT(CHAR(6),COALESCE(d.enc_date, d.appt_date),112)+'01' AS date))

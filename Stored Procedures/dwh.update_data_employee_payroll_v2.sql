@@ -6,7 +6,23 @@ GO
 -- =============================================
 -- Author:		<Benjamin Mansalis>
 -- Create date: <February 23, 2016>
--- Description:	
+/* Description: Builds a table for sourcing HR
+and Finance data related to employees. Can track
+based on location, department, related grant, etc.
+Also tracks historical FTE, and marks any termination
+within a 6 month period as a bad hire
+*/	
+-- =============================================
+-- =============================================
+--Dependencies
+-- etl.data_adp_payroll_v3
+-- etl.data_uds_map_jobtitle
+-- =============================================
+
+
+--Updates
+-- =============================================
+-- April 22, 2016 JTA Additional documentation
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_employee_payroll_v2]
 AS
@@ -593,9 +609,11 @@ AS
                 [Location Code] ,
                 [Current Status] ,
                 [Hire Date] ,
-                CASE WHEN [Termination Date] < CAST('20120801' AS DATE) THEN NULL
+                CASE 
+					 WHEN [Termination Date] < CAST('20120801' AS DATE) THEN NULL
                      ELSE [Termination Date]
-                END AS [Termination Date] ,
+                END 
+					AS [Termination Date] ,
                 [Termination Reason] ,
                 [Termination Reason Code] ,
                 [Job Title] ,
@@ -613,7 +631,8 @@ AS
                 [Standard Hours] , -- this field only represents current FTE not at the time of the payroll
                 [Hourly Rate (001)] AS [Hourly Rate ADP 1 (Direct hourly)] ,   --ADP
                 [Rate Amount] AS [Hourly Rate 2 ADP (Direct-biweekly salary)] ,
-                CASE WHEN [Standard Hours] = 0
+                CASE 
+					 WHEN [Standard Hours] = 0
                           OR [Standard Hours] IS NULL THEN [Hourly Rate (001)]
                      WHEN [Rate Type Code] = 'S' THEN [Annual Salary] / ( 26 * [Standard Hours] )
                      WHEN [Rate Type Code] = 'H' THEN [Hourly Rate (001)]   -- [Annual Salary] / ( 26 * 80 )
@@ -621,39 +640,48 @@ AS
                 END 
 					AS [Hourly Rate ADP (Based on ADP Salary or Hourly)] ,
                 [Annual Salary] AS [Annual Salary ADP not annualized] ,
-                CASE WHEN [Annual Salary] IS NULL
+                CASE 
+					 WHEN [Annual Salary] IS NULL
                           AND [Hourly Rate (001)] IS NULL THEN [Annual Salary]
                      WHEN [Rate Type Code] = 'H' THEN [Hourly Rate (001)] * 2080
                      WHEN [Standard Hours] = 0 THEN NULL
                      WHEN [Rate Type Code] = 'S' THEN [Annual Salary] * ( 80 / [Standard Hours] )
                      ELSE NULL
-                END AS [Annual Salary ADP annualized] ,
+                END 
+					AS [Annual Salary ADP annualized] ,
                 [UDS Table 5 Staffing Category ] ,
                 [UDS Table 5 Line Number ] ,
                 [UDS Table 8 Costs Category ] ,
                 [UDS Table 8 Line Number ] ,
+
+				--To obtain relevant information from Home Cost Number, it must be broken into its individual segment codes
                 SUBSTRING([Home Cost Number - Check], 1, CASE CHARINDEX('-', [Home Cost Number - Check])
                                                            WHEN 0 THEN LEN([Home Cost Number - Check])
                                                            ELSE CHARINDEX('-', [Home Cost Number - Check]) - 1
-                                                         END) AS cn_account_code_cur ,
+                                                         END) 
+															AS cn_account_code_cur ,
                 SUBSTRING([Home Cost Number - Check], 1, 2) AS cn_account_code_sub_cur ,
                 [Location Code] AS cn_site_cur ,
                 SUBSTRING([Home Cost Number - Check], CASE CHARINDEX('-', [Home Cost Number - Check], 7)
                                                         WHEN 0 THEN LEN([Home Cost Number - Check]) + 1
                                                         ELSE CHARINDEX('-', [Home Cost Number - Check], 7) + 1
-                                                      END, 2) AS cn_fund_cur ,
+                                                      END, 2) 
+														AS cn_fund_cur ,
                 SUBSTRING([Home Cost Number - Check], CASE CHARINDEX('-', [Home Cost Number - Check], 11)
                                                         WHEN 0 THEN LEN([Home Cost Number - Check]) + 1
                                                         ELSE CHARINDEX('-', [Home Cost Number - Check], 11) + 1
-                                                      END, 1) AS cn_dir_indir_cur ,
+                                                      END, 1) 
+														AS cn_dir_indir_cur ,
                 SUBSTRING([Home Cost Number - Check], CASE CHARINDEX('-', [Home Cost Number - Check], 14)
                                                         WHEN 0 THEN LEN([Home Cost Number - Check]) + 1
                                                         ELSE CHARINDEX('-', [Home Cost Number - Check], 14) + 1
-                                                      END, 2) AS cn_category_cur ,
+                                                      END, 2) 
+														AS cn_category_cur ,
                 SUBSTRING([Home Cost Number - Check], CASE CHARINDEX('-', [Home Cost Number - Check], 16)
                                                         WHEN 0 THEN LEN([Home Cost Number - Check]) + 1
                                                         ELSE CHARINDEX('-', [Home Cost Number - Check], 16) + 1
-                                                      END, 4) AS cn_proj_grant_cur ,            
+                                                      END, 4) 
+														AS cn_proj_grant_cur ,            
 
    
 
@@ -703,14 +731,17 @@ AS
                 NULL [UDS Person 2015 Tenure] ,
                 NULL [UDS Person 2014 Tenure] ,
                 DATEDIFF(YEAR, [Birth Date], [Pay Date]) AS Age_hx ,
-                CASE WHEN [Pay Date] >= [Hire Date] THEN DATEDIFF(MONTH, [Hire Date], [Pay Date])
+                CASE 
+					 WHEN [Pay Date] >= [Hire Date] THEN DATEDIFF(MONTH, [Hire Date], [Pay Date])
                      ELSE NULL
                 END AS months_since_start_hx ,
-                CASE WHEN [Pay Date] >= [Hire Date]
+                CASE 
+					 WHEN [Pay Date] >= [Hire Date]
                      THEN DATEDIFF(MONTH, [Hire Date],
                                    FIRST_VALUE([Pay Date]) OVER ( PARTITION BY [File Number] ORDER BY [Pay Date] DESC ))
                      ELSE NULL
-                END AS months_since_start_cur ,
+                END 
+					AS months_since_start_cur ,
 
 
 			
@@ -718,13 +749,16 @@ AS
 
 				 --this measure should be the same the allocated measure rolled up by employee
                 NULL months_since_start_allocated_hx ,
-                CASE WHEN [Rate Type Code] = 'S' THEN COALESCE([Regular Hours], 0) / 8
+                CASE 
+					 WHEN [Rate Type Code] = 'S' THEN COALESCE([Regular Hours], 0) / 8
                      WHEN [Rate Type Code] = 'H'
                      THEN ( ( [_Hours Coded19] + [_Hours Coded20] + [_Hours Coded26] + [_Hours Coded29]
                               + COALESCE([Overtime Hours], 0) + COALESCE([Regular Hours], 0) ) / 8 )
                      ELSE 0
-                END AS [FTE_allocated_hx] , -- measure the same as fte dim rolled by by employee
-                CASE WHEN [Rate Type Code] = 'S'
+                END 
+					AS [FTE_allocated_hx] , -- measure the same as fte dim rolled by by employee
+                CASE 
+					 WHEN [Rate Type Code] = 'S'
                      THEN SUM(COALESCE([Regular Hours], 0) / 8) OVER ( PARTITION BY [File Number], [Pay Date] )
                      WHEN [Rate Type Code] = 'H'
                      THEN ( SUM(COALESCE([_Hours Coded19], 0) / 8) OVER ( PARTITION BY [File Number], [Pay Date] )
@@ -734,9 +768,11 @@ AS
                             + SUM(COALESCE([Overtime Hours], 0) / 8) OVER ( PARTITION BY [File Number], [Pay Date] )
                             + SUM(COALESCE([Regular Hours], 0) / 8) OVER ( PARTITION BY [File Number], [Pay Date] ) )
                      ELSE 0
-                END AS [FTE_hx] ,
+                END 
+					AS [FTE_hx] ,
                 [Data Control] ,
-                CASE WHEN [Data Control] IN ( 'FULL', 'FUL', 'FUL3', 'DRFU' ) THEN 1
+                CASE 
+					 WHEN [Data Control] IN ( 'FULL', 'FUL', 'FUL3', 'DRFU' ) THEN 1
                      WHEN [Data Control] = '0005' THEN 0.05
                      WHEN [Data Control] = '0010' THEN 0.10
                      WHEN [Data Control] = '0015' THEN 0.15
@@ -774,21 +810,27 @@ AS
                      WHEN [Data Control] = 'DRFU' THEN 1.00
                      WHEN [Data Control] = 'DS80' THEN 0.80
                      WHEN [Data Control] = 'DS90' THEN 0.90
-                END AS [FTE based on Data Control] ,
-                CASE WHEN ROW_NUMBER() OVER ( PARTITION BY [File Number],
+                END 
+					AS [FTE based on Data Control] ,
+                CASE 
+					 WHEN ROW_NUMBER() OVER ( PARTITION BY [File Number],
                                               CAST(CONVERT(VARCHAR(6), [Pay Date], 112) + '01' AS DATE) ORDER BY [Pay Date] ASC ) = 1
                      THEN 1
                      ELSE 0
-                END AS [Employee Census Month] ,
+                END 
+					 AS [Employee Census Month] ,
               
 			  			  ---- Transfers Census
-                CASE WHEN [Rehire Date] >= CAST('20120101' AS DATE)
+                CASE 
+					 WHEN [Rehire Date] >= CAST('20120101' AS DATE)
                           AND ROW_NUMBER() OVER ( PARTITION BY [File Number], [Rehire Date] ORDER BY [Pay Date] ASC ) = 1
                           AND COALESCE([Rehire Date], '') != ''
                           AND ABS(DATEDIFF(DAY, [Pay Date], [Rehire Date])) < 90 THEN 1
                      ELSE 0
-                END AS [Employee Transfer Census Month] ,
-                CASE WHEN [Rehire Date] >= CAST('20120101' AS DATE)
+                END 
+					AS [Employee Transfer Census Month] ,
+                CASE 
+					 WHEN [Rehire Date] >= CAST('20120101' AS DATE)
                           AND ROW_NUMBER() OVER ( PARTITION BY [File Number], [Rehire Date] ORDER BY [Pay Date] ASC ) = 1
                           AND COALESCE([Rehire Date], '') != ''
                           AND ABS(DATEDIFF(DAY, [Pay Date], [Rehire Date])) < 90
@@ -812,7 +854,8 @@ AS
                                     / DENSE_RANK() OVER ( PARTITION BY [File Number],
                                                           ROUND(DATEDIFF(DAY, [Rehire Date], [Pay Date]) / 180, 1) + 1 ORDER BY [Pay Date] DESC )
                           END
-                END AS [FTE Transfer 6m Avg] ,
+                END 
+					AS [FTE Transfer 6m Avg] ,
 
 
 
@@ -863,8 +906,10 @@ AS
                           AND COALESCE([Hire Date], '') != ''
                           AND ABS(DATEDIFF(DAY, [Pay Date], [Hire Date])) < 90 THEN 1
                      ELSE 0
-                END AS [Employee New Hire Census Month] ,
-                CASE WHEN ROW_NUMBER() OVER ( PARTITION BY [File Number] ORDER BY [Pay Date] ASC ) = 1
+                END 
+					AS [Employee New Hire Census Month] ,
+                CASE 
+					WHEN ROW_NUMBER() OVER ( PARTITION BY [File Number] ORDER BY [Pay Date] ASC ) = 1
                           AND COALESCE([Hire Date], '') != ''
                           AND ABS(DATEDIFF(DAY, [Pay Date], [Hire Date])) < 90
                      THEN CASE 
@@ -887,18 +932,21 @@ AS
                                     / DENSE_RANK() OVER ( PARTITION BY [File Number],
                                                           ROUND(DATEDIFF(DAY, [Hire Date], [Pay Date]) / 180, 1) + 1 ORDER BY [Pay Date] DESC )
                           END
-                END AS [FTE New Hire 6m Avg] ,
+                END 
+					AS [FTE New Hire 6m Avg] ,
 
 
-				--Bad Hires
-                CASE WHEN COALESCE([Hire Date], '') != ''
+				--Bad Hires are anyone terminated within 6 months of hire
+                CASE 
+					WHEN COALESCE([Hire Date], '') != ''
                           AND COALESCE([Termination Date], '') != ''
                           AND ROW_NUMBER() OVER ( PARTITION BY [File Number] ORDER BY [Pay Date] DESC ) = 1
                           AND COALESCE([Termination Date], '') != ''
                           AND ABS(DATEDIFF(DAY, [Pay Date], [Termination Date])) < 90
                           AND DATEDIFF(DAY, [Hire Date], [Termination Date]) <= 180 THEN 1
                      ELSE 0
-                END AS [Employee Bad Hire Census Month] ,
+                END 
+					AS [Employee Bad Hire Census Month] ,
            
 
 				--Include ranges for membership months
@@ -909,7 +957,8 @@ AS
 	           -- Most of the time we can arrive at that rate from looking at regular hours and regular earning.  This is not true when someone has no regular hours for an entire payperiod 
 			   --In this case we use the previous months rate, looking back up to 10 pay periods.  This happens mostly when someone goes on maternity leave.
 			   --There are a few cases where the rate is above 200 -- this was an error in the ADP system  for one provider.  Using the logic below we null out those rates.  Otherwise it looks good.
-                CASE WHEN ( CASE WHEN [Regular Hours] >= 0.25
+                CASE 
+					WHEN ( CASE WHEN [Regular Hours] >= 0.25
                                       AND [Other Earnings] >= 0 THEN [Regular Earnings] / [Regular Hours]
                                  WHEN LAG(ISNULL([Regular Hours], 0), 1) OVER ( PARTITION BY [File Number],
                                                                                 [Cost Number Worked In] ORDER BY [Period End Date - Check] ) >= 0.25
@@ -1076,12 +1125,16 @@ AS
                                                                                  [Cost Number Worked In] ORDER BY [Period End Date - Check] )
                           END
                      ELSE NULL
-                END AS [Hourly Rate Calculated based on Reg Earnings] ,
-                CASE WHEN COALESCE([Regular Hours], 0) + COALESCE([Overtime Hours], 0) > 0
+                END 
+					AS [Hourly Rate Calculated based on Reg Earnings] ,
+                CASE 
+					 WHEN COALESCE([Regular Hours], 0) + COALESCE([Overtime Hours], 0) > 0
                      THEN ( [Gross Pay] ) / ( COALESCE([Regular Hours], 0) + COALESCE([Overtime Hours], 0) )
                      ELSE 0
-                END AS [Hourly Rate Calculated based on Total Earnings] ,
-                CASE WHEN ( CASE WHEN [Regular Hours] >= 0.25
+                END 
+					 AS [Hourly Rate Calculated based on Total Earnings] ,
+                CASE 
+					 WHEN ( CASE WHEN [Regular Hours] >= 0.25
                                       AND [Other Earnings] >= 0 THEN [Regular Earnings] / [Regular Hours]
                                  WHEN LAG(ISNULL([Regular Hours], 0), 1) OVER ( PARTITION BY [File Number],
                                                                                 [Cost Number Worked In] ORDER BY [Period End Date - Check] ) >= 0.25
@@ -1258,7 +1311,8 @@ AS
                                     * 2080
                           END
                      ELSE NULL
-                END AS [Salary Calculated (Reg Earnings) Annualized] ,
+                END 
+					AS [Salary Calculated (Reg Earnings) Annualized] ,
 
 				
 	
@@ -1268,22 +1322,26 @@ AS
                 NULL [UDS Person 2015 Count] ,
                NULL [UDS Person 2014 Count] ,
                 NULL [UDS Person 2013 Count] ,
-                CASE WHEN [Rate Type Code] = 'S' THEN COALESCE([Regular Hours], 0)
+                CASE 
+					 WHEN [Rate Type Code] = 'S' THEN COALESCE([Regular Hours], 0)
                      WHEN [Rate Type Code] = 'H'
                      THEN ( [_Hours Coded19] + [_Hours Coded20] + [_Hours Coded26] + [_Hours Coded29]
                             + COALESCE([Overtime Hours], 0) + COALESCE([Regular Hours], 0) )
                      ELSE 0
-                END AS [Total All Hours] ,
+                END 
+					AS [Total All Hours] ,
                 
                 NULL [Total All Hours Terminated] ,
                 NULL [Total All Hours New Hire] , 
 				
 				
 				 -- This is the logic for the UDS report.
-                CASE WHEN [Regular Hours] = 0
+                CASE 
+					 WHEN [Regular Hours] = 0
                      THEN [_Hours Coded29] + [_Hours Coded26] + [_Hours Coded19] + [_Hours Coded20]
                      ELSE COALESCE([Regular Hours], 0)
-                END AS [Regular Hours with s/v/f/h] , --When someone takes an entire pay period off this causes the Regular Hours to be 0, while if the take a day 
+                END 
+					 AS [Regular Hours with s/v/f/h] , --When someone takes an entire pay period off this causes the Regular Hours to be 0, while if the take a day 
                 COALESCE([Regular Hours], 0) AS [Regular Hours] , --This version of regular hours from ADP only includes s/v time when it is part of a week they employee had some regular hours, otherwise there are no regular hours
                 COALESCE([All Other Coded Hours], 0) AS [All Other Coded Hours] ,
                 COALESCE([Overtime Hours], 0) AS [Overtime Hours] ,
@@ -1410,7 +1468,7 @@ AS
 		
 
 
---Custom Fixes for UDS
+--Custom Fixes for UDS  **DQ**
         UPDATE  dwh.data_employee_payroll_v2
         SET     [UDS Table 5 Staffing Category] = CASE WHEN [Payroll Name] = 'Brannon, Lucinda'
                                                        THEN 'Management and Support Staff'
@@ -1473,9 +1531,10 @@ AS
                 [Name Full] ,
                 [Should Be]
         INTO    #temp
-        FROM    [Prod_Ghost].[etl].[data_costnumber_remap_category]
+        FROM    [Prod_Ghost].[etl].[data_costnumber_remap_category] --This is a static table from Finance data, not created by any procedure
         WHERE   [Name Full] IS NOT NULL;
 
+		--Remap cost numbers to manually defined values
         UPDATE  e
         SET     e.[cn_category_hx] = r.[Should Be] ,
                 e.[cn_category_cur] = r.[Should Be]

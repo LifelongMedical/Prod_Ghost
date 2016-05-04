@@ -38,11 +38,23 @@ see how consistently the codes are used/generated  4/4/16  JTA
 
 --Pull orders into a temporary table with related keys
 SELECT 
+	   IDENTITY(INT,1,1) AS lab_ord_key,
        app.enc_appt_key,
        per.per_mon_id,
+	   per.person_key,
+	   ord.enc_id,
+	   ord.person_id,
+	   --Bringing in keys, names, and also IDs
+	   --IDs are to be used for updating the keys daily once this 
 	   prov.provider_key AS ordering_prov_key,
+	   ord.ordering_provider AS ordering_prov_id,
+	   prov.FullName AS ordering_provider_name,
 	   creat.user_key AS create_user_key,
-	   mod.user_key AS mod_user_key
+	   creat.user_id AS create_user_id,
+	   creat.FullName AS create_user_name,
+	   ord.modified_by AS mod_user_id,
+	   mod.user_key AS mod_user_key,
+	   mod.FullName AS mod_user_name
       ,ord.[order_num]
       ,ord.[test_status]
       ,ord.[ngn_status]
@@ -67,11 +79,6 @@ SELECT
 		ELSE 'Radiology'
 	   END
 		AS order_type
-      --,[general_comment] --Mostly NULL, otherwise text comments
-      --,[order_comment] --Mostly NULL, otherwise text comments
-      --,[patient_comment] --Mostly NULL, otherwise text comments
-      --,[ng_order_ind] --All 'N'
-      --,[abn_signed] -- value is 3 or NULL
       ,ord.[documents_ind]
       --,ord.[signoff_comments_ind]
       ,ord.[intrf_msg]
@@ -86,6 +93,7 @@ SELECT
 		ELSE 0
 	  END
 		AS hiv_test_count
+		--,ROW_NUMBER() OVER(PARTITION BY ord.person_id, ord.test_desc ORDER BY ord.create_timestamp DESC) AS order_recency
   INTO #temp_ord
   FROM [10.183.0.94] .[NGProd]. [dbo].[lab_nor] ord 
   LEFT JOIN dwh. data_appointment app  ON ord.enc_id = app.enc_id
@@ -99,9 +107,7 @@ SELECT
 --Join orders table with results to create a master labs table
 SELECT 
 		ord.*,
-	   ROW_NUMBER() OVER ( PARTITION BY res.person_id, CONVERT(CHAR(8), res.create_timestamp, 112) ORDER BY res.create_timestamp DESC ) AS Recency,
       res.[unique_obr_num]
-      ,res.[obx_seq_num]
       ,res.[value_type]
       ,res.[obs_id]
 	  ,res.[loinc_code]
@@ -152,7 +158,8 @@ SELECT
 			OR res.result_desc LIKE '%cd8%' THEN 1
 		ELSE 0
 	  END
-		AS t_cell_test
+		AS t_cell_test,
+	  res.[obx_seq_num] AS order_rank
   INTO #temp_lab
   FROM #temp_ord ord
   LEFT JOIN [10.183.0.94] .[NGProd].[dbo].[lab_results_obr_p] p WITH(NOLOCK) ON ord.order_num=p.ngn_order_num
@@ -213,11 +220,24 @@ SELECT
 			AND res.cleaned_value >= 5.8 THEN 1
 		ELSE 0
 	END
-		AS pre_diab_flag  
+		AS pre_diab_flag ,
+	CASE 
+		WHEN res.obs_id IS NOT NULL THEN ROW_NUMBER() OVER ( PARTITION BY res.person_key, res.obs_id ORDER BY res.result_date DESC ) 
+		ELSE NULL
+	END
+		AS Recency,
+	CASE
+		--Any order without a result will still be distinct, as only multiple results duplicate an order row
+		WHEN res.order_rank = 1
+			OR res.obs_id IS NULL THEN 1
+		ELSE 0
+	END
+		AS count_distinct_order 
   INTO #lab_final
   FROM #temp_lab res
 
-
+	-- Final step creates dwh table and adds type/range columns to hold the values we are tracking, instead of individual columns for each type
+	--Also adds our own tracking flag for complete, based off whether a result exists for a given order. For comparison against NG
     SELECT 
 		f.*,
 		CASE
@@ -240,8 +260,9 @@ SELECT
 		END
 			AS range,
 		CASE
-			WHEN f.result_date IS NULL THEN 0
-			ELSE 1
+			WHEN f.result_date IS NOT NULL
+				AND f.count_distinct_order = 1 THEN 1
+			ELSE 0
 		END
 			AS count_complete_order
   INTO dwh.data_labs

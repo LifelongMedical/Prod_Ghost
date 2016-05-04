@@ -37,6 +37,7 @@ CREATE TABLE [dwh].[data_person_nd_month]
 [alt_phone] [varchar] (15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [marital_status] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [race] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[ethnicity] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [language] [varchar] (8000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [med_rec_nbr] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [ng_data] [int] NULL
@@ -44,5 +45,8 @@ CREATE TABLE [dwh].[data_person_nd_month]
 ALTER TABLE [dwh].[data_person_nd_month] ADD 
 CONSTRAINT [per_mon_id_pk] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
 CREATE NONCLUSTERED INDEX [IX_person_mon_x_first_mon_date2] ON [dwh].[data_person_nd_month] ([per_mon_id], [first_mon_date]) ON [PRIMARY]
+
+
+
 
 GO

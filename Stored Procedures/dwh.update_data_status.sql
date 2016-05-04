@@ -3,10 +3,24 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
+
 -- =============================================
--- Author:		<Author,,Name>
+-- Author:		<Author,,Ben>
 -- Create date: <Create Date,,>
 -- Description:	<Description,,>
+-- =============================================
+
+
+--Notes
+-- =============================================
+--Dependencies
+-- 
+-- =============================================
+
+
+--Updates
+-- =============================================
+-- 5/2/2016 HD UserId as user_provider and end_datetime added for measuring Provider actual time with Patients
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_status]
 AS
@@ -14,7 +28,7 @@ AS
 	-- SET NOCOUNT ON added to prevent extra result sets from
 	-- interfering with SELECT statements.
         SET NOCOUNT ON;
-
+		SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 /****** Script for SelectTopNRows command from SSMS  ******/
 
 /****** Script for SelectTopNRows command from SSMS  ******/
@@ -22,7 +36,7 @@ AS
 
         IF OBJECT_ID('dwh.data_status') IS NOT NULL
             DROP TABLE dwh.data_status; 
-SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
 
         DECLARE @build_dt_start VARCHAR(8) ,
             @build_dt_end VARCHAR(8);
@@ -78,7 +92,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                                 rank_order_new_first = ROW_NUMBER() OVER ( PARTITION BY enc_id, status_category ORDER BY status_datetime ASC )
                        FROM     StatusCategorize
                      ),
-
+					 --Status filter will select the data by their status by their rank.
                 statusfilter
                   AS ( SELECT   rendering_provider_id ,
                                 [enc_id] ,
@@ -94,7 +108,21 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                                 DATEDIFF(mi, checkin_datetime, status_datetime) AS Min_Kept_to_StatusUpdate ,
 								--Calculate time from rooming until next status update, whatever that may be
                                 ( DATEDIFF(mi, checkin_datetime, status_datetime)
-                                  - LAG(DATEDIFF(mi, checkin_datetime, status_datetime), 1, 0) OVER ( PARTITION BY enc_id ORDER BY status_datetime ) ) AS Min_Since_Last_StatusUpdate
+                                  - LAG(DATEDIFF(mi, checkin_datetime, status_datetime), 1, 0) OVER ( PARTITION BY enc_id ORDER BY status_datetime ) ) AS Min_Since_Last_StatusUpdate,
+
+								  --those two colums added for measure how much time provider spends with patients 
+								  	IIF( status_category=1 AND
+								(
+									(LEAD(status_category,1) OVER ( PARTITION BY enc_id ORDER BY status_datetime ))=2
+									OR   (LEAD(x.status_category,1) OVER ( PARTITION BY enc_id ORDER BY status_datetime ))=3
+								)
+								,(LEAD(status_datetime,1) OVER ( PARTITION BY enc_id ORDER BY status_datetime )),NULL) AS end_datetime,
+										IIF( status_category=1 AND
+								(
+									(LEAD(status_category,1) OVER ( PARTITION BY enc_id ORDER BY status_datetime ))=2
+									OR   (LEAD(x.status_category,1) OVER ( PARTITION BY enc_id ORDER BY status_datetime ))=3
+								)
+								,(LEAD(x.status_user,1) OVER ( PARTITION BY enc_id ORDER BY status_datetime )),NULL) AS UserId
                        FROM     statusorg x
                        WHERE    ( status_category = 1
                                   AND rank_order_new_first = 1
@@ -106,6 +134,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                                      AND rank_order_old_first = 1
                                    )
                      ),
+				--Bring all the unique encounders related statusfilter
                 unique_enc
                   AS ( SELECT DISTINCT
                                 enc_id ,
@@ -123,8 +152,12 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                                 COALESCE(st4.Min_Since_Last_StatusUpdate, 0) AS cycle_min_readyforprovider_checkout ,
                                 st1.status_user AS user_readyforprovider ,
                                 st2.status_user AS user_checkout ,
-                                st3.status_user AS user_charted
-                
+                                st3.status_user AS user_charted,
+								--3 columns added for measuring provider  actual time with patients 
+								st1.UserId,
+								st1.end_datetime,
+								st1.[checkin_datetime]
+							
 
 				--1 Ready for Provider
 				--2 Checked out or Ready for Checkout
@@ -132,6 +165,9 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                        FROM     unique_enc d
                                 LEFT JOIN ( SELECT  [enc_id] ,
                                                     [status_user] ,
+													[UserId], --added for getting providerId
+													[checkin_datetime], --added for getting  provider ready datetime
+													[end_datetime], -- added for getting usercheck out,ready for checkout or charted datetime
                                                     [Min_Kept_to_StatusUpdate]
                                             FROM    statusfilter
                                             WHERE   status_category = 1
@@ -170,7 +206,7 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                     CASE WHEN x.cycle_min_readyforprovider_checkout >= 480 --Throw away anything that is over 8 hours
                               OR x.cycle_min_readyforprovider_checkout < 0 THEN NULL ELSE x.cycle_min_readyforprovider_checkout
                     END AS cycle_min_readyforprovider_checkout ,
-                    x.enc_id ,
+                    x.enc_id,
 					--pulls enc_appt_key, but still referenced as enc_key, so as not to interfere with primary key references
                     ( SELECT TOP 1
                                 de.enc_appt_key
@@ -195,7 +231,16 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
                       FROM      dwh.data_user du
                       WHERE     x.user_charted = du.user_id
                                 AND x.user_charted IS NOT NULL
-                    ) AS user_charted
+                    ) AS user_charted,
+					--Added 3 columns for provider actual time with patients
+					(
+					  SELECT TOP 1 du.user_key
+					  FROM dwh.data_user du
+					  WHERE (du.user_key IS NOT NULL) AND  x.UserId=du.user_id
+
+					) AS user_provider, 
+					x.[checkin_datetime] as start_datetime,
+					x.end_datetime
             INTO    dwh.data_status
             FROM    statusfinal x;
 

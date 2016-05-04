@@ -83,13 +83,23 @@ CREATE TABLE [dwh].[data_appointment]
 [pay1_finclass] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [pay2_finclass] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [pay3_finclass] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[ng_data] [int] NULL
+[ng_data] [int] NULL,
+[enrollment_status] [smallint] NULL,
+[enrollment_created_time] [date] NULL,
+[email_address] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[email_modified_time] [date] NULL,
+[enrollment_users_match] [int] NOT NULL
 ) ON [PRIMARY]
 ALTER TABLE [dwh].[data_appointment] ADD 
 CONSTRAINT [enc_appt_key_PK] PRIMARY KEY CLUSTERED  ([enc_appt_key]) ON [PRIMARY]
 CREATE NONCLUSTERED INDEX [IX_person_mon_id1] ON [dwh].[data_appointment] ([per_mon_id]) ON [PRIMARY]
 
 CREATE NONCLUSTERED INDEX [IX_person_mon_x_first_mon_date1] ON [dwh].[data_appointment] ([per_mon_id], [first_mon_date]) ON [PRIMARY]
+
+
+
+
+
 
 
 

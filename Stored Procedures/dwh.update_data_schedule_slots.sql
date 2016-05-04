@@ -4,9 +4,14 @@ GO
 SET ANSI_NULLS ON
 GO
 -- =============================================
--- Author:		<Author,,Name>
--- Create date: <Create Date,,>
--- Description:	<Description,,>
+-- Author:		<Benjamin Mansalis>
+-- Create date: <January 6, 2016>
+/* Description:	Finds the number of slots open for 
+appointment at all clinics, as of 7am that morning.
+This DWH table is not rebuilt, but instead new 
+records are inserted daily
+
+*/
 -- =============================================
 CREATE PROCEDURE [dwh].[update_data_schedule_slots]
 AS
@@ -95,7 +100,7 @@ SET  @dt_end = (SELECT
             BEGIN 
 
 
--- Need to change this algorithm, remove null out duration because we want the schedules to add uo and add app date to group and create a case statement  to count appointments
+-- **DQ** Need to change this algorithm, remove null out duration because we want the schedules to add uo and add app date to group and create a case statement  to count appointments
 --This gives us all the slots that still have room for additional appointments, This only give open slot if the overbook limit is not reached as this is an aggregate
 
 -- 1) APPT WITH BOOKED < LIMIT
@@ -154,7 +159,7 @@ SET  @dt_end = (SELECT
                                 ) 
  
 
- --I have discovered that the below criteria is dropping one appointment for me on 12/01 for some reason, my next step is to try to figure out why it is getting dropped
+ -- **DQ** I have discovered that the below criteria is dropping one appointment for me on 12/01 for some reason, my next step is to try to figure out why it is getting dropped
  --The answer is that the appointment was cancelled about a week after the appointment by zara ortiz, it looks like it was a hospital follow up appointment that was later rescheduled.
 	
 
@@ -227,7 +232,7 @@ SET  @dt_end = (SELECT
                                                                                                 AND rt.week_start_date <= @dt
                                                                                                 AND rt.week_end_date >= @dt
                                 
-								--Join all the templates that are active for that week -- this join appears to be just to grab the name and excption info
+								--Join all the templates that are active for that week -- this join appears to be just to grab the name and exception info
                                 LEFT JOIN [10.183.0.94].[NGProd].[dbo].appt_templates t ON rt.appt_template_id = t.appt_template_id
                                 
 								--Template member gives all the days of the week and times for all the slots
@@ -264,7 +269,7 @@ SET  @dt_end = (SELECT
 		
 
      
-
+		--Update count of open slots
         UPDATE  #open_appt_slots
         SET     nbr_slots_open_07am = CASE WHEN a1.appt_id IS  NULL
                                                 AND nbr_slots_overbook != 1
@@ -324,7 +329,7 @@ SET  @dt_end = (SELECT
 
 
 
-
+		--Update number of open slots
         UPDATE  #open_appt_slots
         SET     nbr_slots_open_final = CASE WHEN a1.appt_id IS  NULL
                                                  AND nbr_slots_overbook != 1
@@ -395,11 +400,13 @@ SET  @dt_end = (SELECT
 
 
 */
+
+		--Clear out any overlapping rows to be recalculated
         DELETE  FROM dwh.data_schedule_slots
         WHERE   appt_date >= @dt_start
                 AND appt_date <= @dt_end;
 
-     --   SET IDENTITY_INSERT dwh.data_schedule_slots OFF;
+     --SET IDENTITY_INSERT dwh.data_schedule_slots OFF;
         INSERT  INTO dwh.data_schedule_slots
                 ( schedule_resource_key ,
 				  resource_key,

@@ -1,31 +1,23 @@
-CREATE TABLE [fdt].[Dim PHI Patient]
+CREATE TABLE [fdt].[Dim PHI Patient Quality]
 (
 [per_mon_id] [int] NOT NULL,
+[person_key] [int] NOT NULL,
 [first_mon_date] [date] NULL,
 [mh_cur_key] [int] NULL,
-[person_key] [int] NOT NULL,
-[mh_hx_key] [int] NULL,
 [pcp_cur_key] [int] NULL,
-[pcp_hx_key] [int] NULL,
-[Date of Death] [date] NULL,
-[Patient Status Historical] [varchar] (1000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[Patient Status Current] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[Time as Member] [varchar] (27) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Patient Status Cur] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Membership Month Cur] [int] NULL,
+[Time as Member Cur] [varchar] (27) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [membership_time_sort] [int] NULL,
 [Is Patient New] [varchar] (22) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [Is Patient Established] [varchar] (24) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [Is Patient Alive] [varchar] (16) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-[Is Patient Deceased this Month] [varchar] (27) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-[Membership Month] [int] NULL,
-[Age Hx] [int] NULL,
-[Age Cur] [int] NULL,
-[Age Historical] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-[Age_Hx_sort] [int] NOT NULL,
-[Age Current] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-[age_cur_sort] [int] NOT NULL,
+[Is Patient Deceased] [varchar] (27) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [Patient Vintage Month] [varchar] (6) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Patient Vintage Month Range] [varchar] (9) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [Patient Vintage Month sort] [int] NOT NULL,
+[Age Current] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[Language] [varchar] (8000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Full Name] [varchar] (150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [First Name] [varchar] (70) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Last Name] [varchar] (70) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
@@ -42,7 +34,6 @@ CREATE TABLE [fdt].[Dim PHI Patient]
 [Alternate Phone Number] [varchar] (15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Marital Status] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Race] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-[Language] [varchar] (8000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Medical Record Number] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Address Full] [varchar] (174) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Last Appointment Date] [date] NULL,
@@ -52,7 +43,4 @@ CREATE TABLE [fdt].[Dim PHI Patient]
 [Last Encounter Provider] [varchar] (52) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Next Appointment Provider] [varchar] (52) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
 ) ON [PRIMARY]
-ALTER TABLE [fdt].[Dim PHI Patient] ADD 
-CONSTRAINT [per_mon_id_pk5] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
-
 GO

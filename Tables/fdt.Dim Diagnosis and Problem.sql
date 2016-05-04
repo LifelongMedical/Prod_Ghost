@@ -2,6 +2,7 @@ CREATE TABLE [fdt].[Dim Diagnosis and Problem]
 (
 [dx_prob_key] [int] NOT NULL IDENTITY(1, 1),
 [per_mon_id] [int] NULL,
+[person_key] [int] NULL,
 [enc_appt_key] [int] NULL,
 [ICD Code] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Dx Name] [varchar] (255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,

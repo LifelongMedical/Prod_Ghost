@@ -130,7 +130,7 @@ AS
             @Build_counter VARCHAR(8);
 
         SET @build_dt_start = CONVERT(VARCHAR(8), DATEADD(MONTH, 6, GETDATE()));
-        SET @build_dt_end = CONVERT(VARCHAR(8), GETDATE(), 112);
+        SET @build_dt_end = CONVERT(VARCHAR(8), DATEADD(m,6,GETDATE()), 112);
         SET @build_dt_start = '20100301';
 
         --Temp table is created in a separate statement to account for the later addition of ECW fields
@@ -938,6 +938,7 @@ AS
                 nr.alt_phone ,
                 nr.marital_status ,
                 nr.race ,
+				nr.ethnicity,
                 REPLACE(nr.language, '*', '') AS language , --DQ Change
                 nr.med_rec_nbr,
                 nr.ng_data

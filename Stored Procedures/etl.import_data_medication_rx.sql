@@ -187,6 +187,9 @@ us.user_key AS prescribing_user_key,
 app.enc_appt_key,
 ph.first_mon_date,
 ph.person_id,
+ph.provider_id,
+ph.enc_id,
+ph.location_id,
 ph.md_id,
 
 /*

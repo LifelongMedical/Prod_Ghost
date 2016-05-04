@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -32,6 +33,44 @@ BEGIN
 	--Make sure the temp table is not sitting in memory
 	 IF OBJECT_ID('tempdb..#temp_pharmacy') IS NOT NULL
             DROP TABLE #temp_pharmacy;
+
+	IF OBJECT_ID('tempdb..#id_update') IS NOT NULL
+            DROP TABLE #id_update;
+	
+	--Pull all the relevant information for per_mon_id to match to medicaiton table
+	SELECT DISTINCT per_mon_id, person_id, first_mon_date 
+	INTO #id_update
+	FROM dwh.data_person_nd_month WHERE ng_data = 1
+
+	 --Per_mon_id must be updated daily is this is an insert procedure, table is not rebuilt daily
+	 UPDATE dwh.data_medication_rx
+	 SET per_mon_id = (SELECT TOP 1 per_mon_id
+						FROM dwh.data_person_dp_month per
+						WHERE per.person_id = id.person_id
+							AND per.first_mon_date = id.first_mon_date)
+	 FROM #id_update id
+
+	 DROP TABLE #id_update --To save space on our overburdened servers
+
+	 --Update the user key and encounter key so it matches the proper prescribing user
+	 UPDATE med
+		SET med.prescribing_user_key = us.user_key,
+			med.enc_appt_key = app.enc_appt_key
+			--need to pull location_id into med table before updating appt_loc_key
+			--med.appt_loc_key = ( SELECT TOP 1
+			--						location_key
+			--					FROM      dwh.data_location dl
+			--					WHERE     dl.location_id = med.location_id
+			--							AND dl.location_id_unique_flag = 1
+			--							AND med.location_id IS NOT NULL
+			--					)
+	 FROM dwh.data_medication_rx med
+	 LEFT JOIN dwh.data_appointment app ON (med.enc_id = app.enc_id AND app.ng_data = 1)
+	 LEFT JOIN dwh.data_user_v2 us ON (us.self_provider_id = med.provider_id AND us.ng_data = 1)
+
+
+
+
 	 
 
 
@@ -162,10 +201,13 @@ delete from dwh.data_medication_rx where start_date >= (GETDATE()-3)--remove the
 INSERT INTO dwh.data_medication_rx
         ( per_mon_id ,
           appt_loc_key ,
+		  person_id,
           prescribing_user_key ,
           enc_appt_key ,
           first_mon_date ,
           md_id ,
+		  provider_id,
+		  enc_id,
           active_med_count ,
           active_med_all ,
           active_count_lifelong ,
@@ -213,11 +255,13 @@ per.per_mon_id,
             AND dl.location_id_unique_flag = 1
             AND ph.location_id IS NOT NULL
 ) AS appt_loc_key,
---User key is selected via subquery, as provider_id and resource id repeat in master table
+ph.person_id,
 us.user_key AS prescribing_user_key,
 app.enc_appt_key,
 ph.first_mon_date,
 ph.md_id,
+ph.provider_id,
+ph.enc_id,
 
 /*
 A single medication may show up as multiple rows despites select distinct, as it may be sent to multiple stores

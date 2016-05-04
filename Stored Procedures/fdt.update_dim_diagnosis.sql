@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -18,8 +19,12 @@ BEGIN
 	IF OBJECT_ID('fdt.[Dim Diagnosis and Problem]') IS NOT NULL
 		DROP TABLE fdt.[Dim Diagnosis and Problem]
 
+	IF OBJECT_ID('fdt.[Bridge Diagnosis Problem]') IS NOT NULL
+		DROP TABLE fdt.[Bridge Diagnosis Problem]
+
     SELECT [dx_prob_key]
       ,[per_mon_id]
+	  ,[person_key]
       ,[enc_appt_key]
       ,[icd_code] AS [ICD Code]
       ,[diag_name] AS [Dx Name]
@@ -36,6 +41,13 @@ BEGIN
   INTO fdt.[Dim Diagnosis and Problem]
   FROM [Prod_Ghost].[dwh].[data_diagnosis_problem]
 
+
+  SELECT
+	dx_prob_key,
+	per_mon_id,
+	person_key
+  INTO fdt.[Bridge Diagnosis Problem]
+  FROM dwh.data_diagnosis_problem
 
 
 END

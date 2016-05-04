@@ -9,6 +9,9 @@ CREATE TABLE [dwh].[data_status]
 [enc_key] [int] NULL,
 [user_readyforprovider] [int] NULL,
 [user_checkout] [int] NULL,
-[user_charted] [int] NULL
+[user_charted] [int] NULL,
+[user_provider] [int] NULL,
+[start_datetime] [datetime] NULL,
+[end_datetime] [datetime] NULL
 ) ON [PRIMARY]
 GO

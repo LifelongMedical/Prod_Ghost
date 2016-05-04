@@ -20,7 +20,7 @@ CREATE TABLE [fdt].[Fact and Dim Medication]
 [Store ID] [uniqueidentifier] NULL,
 [Rx Start Date] [date] NULL,
 [Rx Expiration Date] [date] NULL,
-[Licensed Prescriber] [varchar] (33) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Licensed Prescriber] [varchar] (92) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [User Ordering] [varchar] (32) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Rx Not Prescribed by Provider] [int] NOT NULL,
 [PatName] [varchar] (122) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -45,5 +45,6 @@ CREATE TABLE [fdt].[Fact and Dim Medication]
 [Rx Schedule V] [int] NOT NULL
 ) ON [PRIMARY]
 ALTER TABLE [fdt].[Fact and Dim Medication] ADD 
-CONSTRAINT [PK__Fact and__8327AB4BF9E888BF] PRIMARY KEY CLUSTERED  ([med_key]) ON [PRIMARY]
+CONSTRAINT [PK__Fact and__8327AB4B8C19E07F] PRIMARY KEY CLUSTERED  ([med_key]) ON [PRIMARY]
+
 GO

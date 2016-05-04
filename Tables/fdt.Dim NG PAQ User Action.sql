@@ -1,4 +1,4 @@
-CREATE TABLE [fdt].[Dim NG User]
+CREATE TABLE [fdt].[Dim NG PAQ User Action]
 (
 [user_key] [int] NOT NULL IDENTITY(1, 1),
 [employee_key] [int] NULL,

@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -311,13 +312,45 @@ res.phys_id,
                   
 
 
-SELECT u.* INTO dwh.data_user_v2 FROM #user u 
+SELECT u.*, 1 AS ng_data INTO dwh.data_user_v2 FROM #user u 
 
 SELECT p.*,user_key, ROW_NUMBER() OVER(PARTITION BY p.provider_id ORDER BY (SELECT NULL)) AS rownum INTO #provider3 FROM #provider2 p LEFT JOIN  dwh.data_user_v2 u ON p.provider_id=u.self_provider_id 
 
 SELECT IDENTITY( INT, 1, 1 )  AS provider_key, * INTO dwh.data_provider FROM #provider3 WHERE rownum <2
 
 SELECT  IDENTITY( INT, 1, 1 )  AS resource_key,r.*, p.provider_key INTO dwh.data_resource FROM #resource r LEFT JOIN dwh.data_provider p ON p.provider_id= r.phys_id
+ 
+
+--Insertion of ECW user data
+ALTER TABLE dwh.data_user_v2 ADD user_id_ecw INT NULL
+ALTER TABLE dwh.data_user_v2 ALTER COLUMN user_id INT NULL 
+ALTER TABLE dwh.data_user_v2 ALTER COLUMN first_name VARCHAR(60)
+ALTER TABLE dwh.data_user_v2 ALTER COLUMN last_name VARCHAR(30)
+ALTER TABLE dwh.data_user_v2 ALTER COLUMN FullName VARCHAR(92)
+
+INSERT INTO dwh.data_user_v2
+        ( 
+          employee_key ,
+          first_name ,
+          last_name ,
+          FullName,
+		  user_id_ecw,
+		  ng_data
+        )
+SELECT
+	ar.employee_key,
+	us.first_name,
+	us.last_name,
+	us.FullName,
+	us.user_id_ecw,
+	0 AS ng_data
+FROM dwh.data_user_ecw us
+LEFT JOIN dwh.data_employee_v2 ar ON REPLACE(UPPER(LEFT(us.first_name, 3)), '''', '') = REPLACE(UPPER(LEFT(ar.[Payroll First Name],
+                                                                                                        3)), '''', '')
+                                                      AND REPLACE(UPPER(us.last_name), '''', '') = REPLACE(UPPER(ar.[Payroll Last Name]),
+                                                                                                        '''', '')
+
+
 
 /*
 Insertion of ECW provider data

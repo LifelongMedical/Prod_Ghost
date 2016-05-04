@@ -6,6 +6,8 @@ CREATE TABLE [dwh].[data_PAQ]
 [per_mon_id] [int] NULL,
 [first_mon_date] [date] NULL,
 [enc_appt_key] [int] NULL,
+[PAQ_provider_key] [int] NULL,
+[PAQ_reassigned_provider_key] [int] NULL,
 [user_key] [int] NULL,
 [item_name] [varchar] (255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [created_by] [int] NOT NULL,
@@ -26,6 +28,8 @@ CREATE TABLE [dwh].[data_PAQ]
 [nbr_Realted_to_encounter_flg] [int] NOT NULL,
 [nbr_PAQ_Reassigned_to_dif_Provider_flg] [int] NOT NULL,
 [nbr_PAQ_Rejected] [int] NOT NULL,
-[nbr_PAQ_Reassigned] [int] NOT NULL
+[nbr_PAQ_Reassigned] [int] NOT NULL,
+[Lab Flag Description] [varchar] (46) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Lab Flag] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
 ) ON [PRIMARY]
 GO

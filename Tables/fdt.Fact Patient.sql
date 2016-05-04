@@ -7,6 +7,20 @@ CREATE TABLE [fdt].[Fact Patient]
 [pcp_cur_key] [int] NULL,
 [pcp_hx_key] [int] NULL,
 [med_rec_nbr] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Membership Month] [int] NULL,
+[Time as Member] [varchar] (27) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[membership_time_sort] [int] NULL,
+[Is Patient New] [varchar] (22) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[Is Patient Established] [varchar] (24) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[Is Patient Alive] [varchar] (16) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[Is Patient Deceased this Month] [varchar] (27) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[Patient Vintage Month] [varchar] (6) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Patient Vintage Month Range] [varchar] (9) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[Patient Vintage Month sort] [int] NOT NULL,
+[Age Historical] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[Age_Hx_sort] [int] NOT NULL,
+[Age Current] [varchar] (11) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+[age_cur_sort] [int] NOT NULL,
 [Number of New Patients this Month] [int] NOT NULL,
 [Number of Patient Members] [int] NOT NULL,
 [Number of Patients Deceased] [int] NULL,
@@ -23,8 +37,9 @@ CREATE TABLE [fdt].[Fact Patient]
 [Number Inactive Pt Past 24 Months] [int] NOT NULL,
 [Number of Patients with Medical Home Change] [int] NOT NULL,
 [Number of Patients with PCP Change] [int] NOT NULL,
-[Number of Patients Never Active] [int] NOT NULL
+[Number of Patients Never Active] [int] NOT NULL,
+[person_key] [int] NOT NULL
 ) ON [PRIMARY]
-GO
-ALTER TABLE [fdt].[Fact Patient] ADD CONSTRAINT [per_mon_id_pk2] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
+ALTER TABLE [fdt].[Fact Patient] ADD 
+CONSTRAINT [per_mon_id_pk2] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
 GO

@@ -37,6 +37,7 @@ CREATE TABLE [dwh].[data_person_dp_month]
 [alt_phone] [varchar] (15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [marital_status] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [race] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[ethnicity] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [language] [varchar] (8000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [med_rec_nbr] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [ng_data] [int] NULL,
@@ -63,5 +64,6 @@ CREATE TABLE [dwh].[data_person_dp_month]
 ) ON [PRIMARY]
 ALTER TABLE [dwh].[data_person_dp_month] ADD 
 CONSTRAINT [per_mon_id_pk32] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
+
 
 GO

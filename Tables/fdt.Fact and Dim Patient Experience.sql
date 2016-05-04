@@ -30,5 +30,6 @@ CREATE TABLE [fdt].[Fact and Dim Patient Experience]
 [Created] [datetime] NULL
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 ALTER TABLE [fdt].[Fact and Dim Patient Experience] ADD 
-CONSTRAINT [PK__Fact and__61E7930DF34989E6] PRIMARY KEY CLUSTERED  ([survey_key]) ON [PRIMARY]
+CONSTRAINT [PK__Fact and__61E7930D88989CAD] PRIMARY KEY CLUSTERED  ([survey_key]) ON [PRIMARY]
+
 GO

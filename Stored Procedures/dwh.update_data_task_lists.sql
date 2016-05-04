@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -60,23 +61,26 @@ BEGIN
                                 ut1.task_subj, -- what its for? --,per.last_name
                                 ( CASE WHEN ISDATE(ut1.create_timestamp) = 1 THEN CAST(ut1.create_timestamp AS DATE)  END ) AS create_date ,
                                 pe.location_id
-                       FROM     [10.183.0.94].NGDevl.dbo.user_todo_list ut1
-                                LEFT JOIN [10.183.0.94].NGProd.dbo.patient_encounter pe ON pe.enc_id = ut1.pat_enc_id
+                       FROM     [10.183.0.94].NGProd.dbo.user_todo_list ut1
+                                LEFT JOIN [10.183.0.94].NGProd.dbo.patient_encounter pe (NOLOCK) ON pe.enc_id = ut1.pat_enc_id
                      ) 
 
             --Build dwh table
         SELECT 
-		        per.person_id ,
-                t.location_id ,
-                per.per_mon_id ,
-                t.pat_enc_id AS enc_id ,
-                t.[task_id] AS NG_task_id ,
+		        --per.person_id ,
+				userto.user_key AS task_to_user_key,
+				userfrom.user_key AS task_from_user_key,
+			  --  data_appointment.enc_appt_key,
+               -- t.location_id ,
+               -- per.per_mon_id ,
+              --  t.pat_enc_id AS enc_id ,
+              --  t.[task_id] AS NG_task_id ,
                 t.create_timestamp ,
                 t.task_from_user_id ,
-                t.task_to_user_id ,
+                t.task_to_user_id,
 				t.[HourstoCompeletion],
 				t.[DaystoCompeletion],
-                CAST(CONVERT(CHAR(6), t.create_timestamp, 112) + '01' AS DATE) seq_date ,
+               -- CAST(CONVERT(CHAR(6), t.create_timestamp, 112) + '01' AS DATE) seq_date ,
                 CASE WHEN task_completed = 1 THEN 'Task Completed'
                      ELSE 'Task Not Complete'
                 END AS Task_completed ,
@@ -135,12 +139,13 @@ BEGIN
                           OR CONCAT(task_desc, ' ', task_subj) LIKE '%xry%' THEN 'Imaging'					 
 					 ELSE 'Other'
                 END AS Request_Type
-				,CASE WHEN t.task_completed=1 THEN 0 ELSE 1 END AS active 
-        INTO    dwh.data_task_lists
+				,CASE WHEN t.task_completed=1 THEN 0 ELSE 1 END AS [Nbr of active Inbox]
+      INTO    dwh.data_task_lists
         FROM    TasksRaw t
-                INNER JOIN dwh.data_person_dp_month per ON t.pat_acct_id = per.person_id
-                                                          AND per.first_mon_date = CAST(CONVERT(CHAR(6), t.create_timestamp, 112)
-                                                          + '01' AS DATE)
-    
+			LEFT OUTER JOIN dwh.data_user_v2 userto WITH (NOLOCK) ON t.task_to_user_id = userto.user_id
+			LEFT OUTER JOIN dwh.data_user_v2 userfrom WITH (NOLOCK) ON t.task_from_user_id = userfrom.user_id
+		--	LEFT OUTER JOIN [dwh].[data_appointment] data_appointment WITH (NOLOCK) ON data_appointment.[enc_id] = t.pat_enc_id
+                                                        
+ 
 END
 GO

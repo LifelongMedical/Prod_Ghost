@@ -14,10 +14,10 @@ CREATE TABLE [fdt].[Fact and Dim PAQ]
 [Signoff Date] [date] NULL,
 [PAQ Creation Date] [datetime] NULL,
 [Key Date] [date] NULL,
-[Hours PAQ Action] [int] NULL,
+[Hours PAQ Action] [decimal] (24, 6) NULL,
 [Hours to PAQ Action Range] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Hours Sort] [int] NULL,
-[PAQ Days to Action] [int] NULL,
+[PAQ Days to Action] [decimal] (29, 11) NULL,
 [Days to PAQ Action Range] [varchar] (20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Days Sort] [int] NULL,
 [Nbr of Active PAQ] [int] NOT NULL,
@@ -31,5 +31,6 @@ CREATE TABLE [fdt].[Fact and Dim PAQ]
 [Nbr of PAQ Reassigned to Diff Provider] [int] NOT NULL
 ) ON [PRIMARY]
 ALTER TABLE [fdt].[Fact and Dim PAQ] ADD 
-CONSTRAINT [PK__Fact and__45260B6C0DB33533] PRIMARY KEY CLUSTERED  ([paq_key]) ON [PRIMARY]
+CONSTRAINT [PK__Fact and__45260B6CE1DB4997] PRIMARY KEY CLUSTERED  ([paq_key]) ON [PRIMARY]
+
 GO

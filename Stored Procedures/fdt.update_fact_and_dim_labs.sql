@@ -33,6 +33,7 @@ SELECT lab_res_key
       ,ordering_prov_key
       ,create_user_key
       ,mod_user_key
+	  ,test_ordered AS [Order Type]
       ,test_status AS [Order Status]
       ,ngn_status AS [NG Order Status]
       ,test_desc AS [Description]
@@ -92,6 +93,7 @@ SELECT lab_res_key
       ,ordering_prov_key
       ,create_user_key
       ,mod_user_key
+	  ,test_ordered AS [Order Type]
       ,test_status AS [Order Status]
       ,ngn_status AS [NG Order Status]
       ,test_desc AS [Description]

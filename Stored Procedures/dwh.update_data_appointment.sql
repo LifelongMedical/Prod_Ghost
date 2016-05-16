@@ -120,7 +120,7 @@ link between appts and slots based on
               [appt_person_id] [UNIQUEIDENTIFIER] NULL ,
               [enc_person_id] [UNIQUEIDENTIFIER] NULL ,
               [enc_id] [UNIQUEIDENTIFIER] NULL ,
-			  [enc_id_ecw] INT NULL,
+			  [enc_id_ecw] [INT] NULL,
               [enc_nbr] [NUMERIC](12, 0) NULL ,
               [appt_person_id_ecw] [INT] NULL,
               [ecw_provider_id] [INT] NULL,
@@ -156,6 +156,9 @@ link between appts and slots based on
               [pay1_finclass] [VARCHAR](110) NULL,
               [pay2_finclass] [VARCHAR](110) NULL,
               [pay3_finclass] [VARCHAR](110) NULL,
+			  [diagnosis_1] [VARCHAR](266) NULL, 
+			  [diagnosis_2] [VARCHAR](266) NULL, 
+			  [diagnosis_3] [VARCHAR](266) NULL, 
               [ng_data] [INT] NULL --Necessary flag to determine whether pulling from NG or ECW tables
             );
 
@@ -537,6 +540,7 @@ link between appts and slots based on
                   appt_date ,
                   ecw_location_id ,
                   ecw_provider_id,
+				  enc_id_ecw,
                   enc_nbr,
                   appt_nbr ,
                   enc_slot_type ,
@@ -565,7 +569,10 @@ link between appts and slots based on
                   status_appt_kept,
                   status_cancel_reason,
                   status_charges,
-                  status_pcpcrossbook
+                  status_pcpcrossbook,
+				  diagnosis_1,
+				  diagnosis_2,
+				  diagnosis_3
 
         )
         SELECT 
@@ -573,12 +580,13 @@ link between appts and slots based on
             CAST(enc_date AS DATE) AS appt_date,
             location_id,
             provider_rendering_id,
+			enc_nbr,
             CAST(enc_nbr AS NUMERIC) AS enc_nbr,
             CAST(enc_nbr AS NUMERIC) AS appt_nbr,
             'Appt with Encounter' AS enc_slot_type,
             CAST(enc_date AS DATE) AS enc_date,
             CASE
-                WHEN all_enc_count = 1 THEN 'Y'
+                WHEN nbr_bill_enc = 1 THEN 'Y'
                 ELSE 'N'
             END
                 AS appt_kept_ind,
@@ -631,16 +639,23 @@ link between appts and slots based on
             END
                 AS status_enc_billable,
             'Unknown' AS status_enc,
+			--Only counting the billable visits as kept appointments, otherwise numbers are way off
             CASE
-                WHEN all_enc_count = 1 THEN 'Kept'
+                WHEN nbr_bill_enc = 1 THEN 'Kept'
                 ELSE 'Not Kept'
             END
                 AS status_appt_kept,
             --NULL values interfere with link to composite key
             'Unknown' AS status_cancel_reason,
             'Unknown' AS status_charges,
-            'Unknown' AS status_pcpcrossbook
-    FROM Prod_Ghost.dwh.data_appointment_ecw
+            'Unknown' AS status_pcpcrossbook,
+			dx1.dx_enc,
+			dx2.dx_enc,
+			dx3.dx_enc
+    FROM Prod_Ghost.dwh.data_appointment_ecw app
+	LEFT JOIN dwh.data_diagnosis_ecw dx1 ON( dx1.encounter_id_ecw=app.enc_nbr AND dx1.dx_enc_rank = 1)
+	LEFT JOIN dwh.data_diagnosis_ecw dx2 ON( dx2.encounter_id_ecw=app.enc_nbr AND dx2.dx_enc_rank = 2)
+	LEFT JOIN dwh.data_diagnosis_ecw dx3 ON( dx3.encounter_id_ecw=app.enc_nbr AND dx3.dx_enc_rank = 3)
 
 
 
@@ -734,6 +749,15 @@ link between appts and slots based on
 
 
 
+--Pull NextGen dx data into a separate temp table, maybe eventually add to original insert up top
+--Ranks the top 3 diagnosis for ach ecnounter based on their creation timestamp
+	SELECT enc_id, 
+	(icd9cm_code_id + '-' + description) AS diagnosis, 
+	ROW_NUMBER() OVER (PARTITION BY enc_id ORDER BY create_timestamp ASC) AS dx_order 
+	INTO #temp_dx
+	FROM [10.183.0.94].NGProd.dbo.[patient_diagnosis]
+
+
 /*
 Final SELECT statements creates the dwh table. Certain statements use a CASE statement which evaluates the d.ng_data
 flag, and pull from a different location depending on if flag is NextGen (1) or ECW (0)
@@ -769,6 +793,7 @@ flag, and pull from a different location depending on if flag is NextGen (1) or 
                 --            AND d.enc_id IS NOT NULL
                 --) AS enc_key ,
                 d.enc_id ,
+				d.enc_id_ecw,
                 CASE
                     WHEN d.ng_data = 1 THEN
                 ( SELECT TOP 1
@@ -1231,13 +1256,32 @@ flag, and pull from a different location depending on if flag is NextGen (1) or 
 				CASE
 					WHEN en.enc_created_by=en.enrollment_created_by   THEN 1
 					ELSE 0
-				END AS enrollment_users_match
+				END 
+					AS enrollment_users_match,
+				CASE
+					WHEN ng_data = 1 THEN dx1.diagnosis
+					ELSE d.diagnosis_1
+				END
+					 AS diagnosis_1,
+				CASE
+					WHEN ng_data = 1 THEN dx2.diagnosis
+					ELSE d.diagnosis_2
+				END
+					 AS diagnosis_2,
+				CASE
+					WHEN ng_data = 1 THEN dx3.diagnosis
+					ELSE d.diagnosis_3
+				END
+					 AS diagnosis_3
         INTO    dwh.data_appointment
         FROM    #appt_enc3 d
                 LEFT JOIN dwh.data_status ds ON (d.enc_id = ds.enc_id AND d.enc_id IS NOT NULL)
                 LEFT JOIN dwh.data_provider ecwp ON d.ecw_provider_id=ecwp.ecw_provider_key
                 LEFT JOIN dwh.data_location ecwl ON ecwl.ecw_location_id = d.ecw_location_id
 				LEFT JOIN [dwh].[data_ngweb_enrollment] en ON  en.[enc_id]=d.enc_id --Email Token Table
+				LEFT JOIN #temp_dx dx1 ON (d.enc_id = dx1.enc_id AND dx1.dx_order = 1 )
+				LEFT JOIN #temp_dx dx2 ON (d.enc_id = dx2.enc_id AND dx2.dx_order = 2 )
+				LEFT JOIN #temp_dx dx3 ON (d.enc_id = dx3.enc_id AND dx3.dx_order = 3 )
 				--Using Select Top 1 instead of join, perhaps a change to be made later
                 --LEFT JOIN dwh.data_person_nd_month per ON (per.person_id_ecw = d.appt_person_id_ecw
                 --                                       AND per.first_mon_date=CAST(CONVERT(CHAR(6),COALESCE(d.enc_date, d.appt_date),112)+'01' AS date))

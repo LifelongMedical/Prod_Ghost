@@ -18,6 +18,7 @@ CREATE TABLE [fdt].[Fact and Dim Vital Signs]
 [Recency All Time] [int] NOT NULL
 ) ON [PRIMARY]
 ALTER TABLE [fdt].[Fact and Dim Vital Signs] ADD 
-CONSTRAINT [PK__Fact and__6688BB36F2684054] PRIMARY KEY CLUSTERED  ([vital_signs_key]) ON [PRIMARY]
+CONSTRAINT [PK__Fact and__6688BB36B1E43FF7] PRIMARY KEY CLUSTERED  ([vital_signs_key]) ON [PRIMARY]
+
 
 GO

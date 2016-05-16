@@ -10,6 +10,7 @@ CREATE TABLE [dwh].[data_sp_patient_survey]
 [survey_q5] [decimal] (18, 0) NULL,
 [survey_q6] [decimal] (18, 0) NULL,
 [survey_q7] [decimal] (18, 0) NULL,
+[survey_critical] [int] NOT NULL,
 [q1_val] [int] NULL,
 [q2_val] [int] NULL,
 [q3_val] [int] NULL,

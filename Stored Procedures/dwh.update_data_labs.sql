@@ -3,47 +3,57 @@ SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
 GO
-CREATE PROCEDURE [dwh].[update_data_labs]
-AS
-BEGIN 
-
 -- =============================================
 -- Author:		<Julius Abate>
--- Create date: <April 3, 2016>
--- Dependant On: person_dp_month, appointment, user_v2
--- Runtime 31 minutes w/o result comments, 41 with
-/* Description:	
-Procedure pulls lab orders into
-the dwh. Also pull lab results with the key
-corresponding to the lab order.
-*/
+-- Create date: <May 4, 2016>
+/* Description: Inserts into the dwh.data_labs
+	table any orders or results modified in the
+	past 24 hours. Also updates the relevant keys
+	for every row in the table, as many of the 
+	related tables are still rebuilt daily. 
+	Saves around 30 minutes of */
 -- =============================================
 
 
-	IF OBJECT_ID('dwh.data_labs') IS NOT NULL
-		DROP TABLE dwh.data_labs
+--Notes
+-- =============================================
+--Dependencies
+-- data_appointment, data_person_dp_month
+-- data_user_v2, data_provider, data_labs
+-- =============================================
 
-	IF OBJECT_ID('tempdb..#temp_ord') IS NOT NULL
-		DROP TABLE #temp_ord
-	IF OBJECT_ID('tempdb..#temp_lab') IS NOT NULL
+
+--Updates
+-- =============================================
+-- DATE initial and update info
+-- =============================================
+CREATE PROCEDURE [dwh].[update_data_labs]
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+
+		IF OBJECT_ID('tempdb..#temp_lab') IS NOT NULL 
 		DROP TABLE #temp_lab
-	IF OBJECT_ID('tempdb..#lab_final') IS NOT NULL
+
+	IF OBJECT_ID('tempdb..#lab_range') IS NOT NULL 
+		DROP TABLE #lab_range
+
+	IF OBJECT_ID('tempdb..#lab_final') IS NOT NULL 
 		DROP TABLE #lab_final
-/*
-Currently tracking labs results based on text match in the description,
-but considering the move to loinc codes. Have to first do some digging to
-see how consistently the codes are used/generated  4/4/16  JTA
-*/
 
+	IF OBJECT_ID('tempdb..#rekey') IS NOT NULL 
+		DROP TABLE #rekey
 
---Pull orders into a temporary table with related keys
+--Grab any orders modified within the past day
 SELECT 
-	   IDENTITY(INT,1,1) AS lab_ord_key,
+	   
        app.enc_appt_key,
        per.per_mon_id,
 	   per.person_key,
-	   ord.enc_id,
-	   ord.person_id,
 	   --Bringing in keys, names, and also IDs
 	   --IDs are to be used for updating the keys daily once this 
 	   prov.provider_key AS ordering_prov_key,
@@ -92,22 +102,14 @@ SELECT
 		WHEN ord.test_desc LIKE 'HIV%' THEN 1
 		ELSE 0
 	  END
-		AS hiv_test_count
-		--,ROW_NUMBER() OVER(PARTITION BY ord.person_id, ord.test_desc ORDER BY ord.create_timestamp DESC) AS order_recency
-  INTO #temp_ord
-  FROM [10.183.0.94] .[NGProd]. [dbo].[lab_nor] ord 
-  LEFT JOIN dwh. data_appointment app  ON ord.enc_id = app.enc_id
-  LEFT JOIN dwh.data_person_nd_month per ON (ord.person_id = per.person_id AND per.first_mon_date=CAST(CONVERT(CHAR(6),ord.create_timestamp,112)+'01' AS date))
-  LEFT JOIN dwh.data_provider prov ON prov.provider_id=ord.ordering_provider
-  LEFT JOIN dwh.data_user_v2 creat   ON creat.user_id=ord.created_by
-  LEFT JOIN dwh.data_user_v2 mod  ON mod.user_id=ord.modified_by
-
-
-
---Join orders table with results to create a master labs table
-SELECT 
-		ord.*,
-      res.[unique_obr_num]
+		AS hiv_test_count,
+		CASE
+		WHEN ord.test_desc LIKE 'HIV%' THEN 'HIV'
+		ELSE 'Other'
+	  END
+		AS test_ordered,
+		--Begin result fields
+		res.[unique_obr_num]
       ,res.[value_type]
       ,res.[obs_id]
 	  ,res.[loinc_code]
@@ -160,15 +162,25 @@ SELECT
 	  END
 		AS t_cell_test,
 	  res.[obx_seq_num] AS order_rank
+
+
   INTO #temp_lab
-  FROM #temp_ord ord
+  FROM [10.183.0.94] .[NGProd]. [dbo].[lab_nor] ord 
   LEFT JOIN [10.183.0.94] .[NGProd].[dbo].[lab_results_obr_p] p WITH(NOLOCK) ON ord.order_num=p.ngn_order_num
-  LEFT JOIN [10.183.0.94] .[NGProd]. [dbo].lab_results_obx res WITH(NOLOCK) ON res.unique_obr_num=p.unique_obr_num
+  LEFT JOIN [10.183.0.94] .[NGProd]. [dbo].lab_results_obx res WITH(NOLOCK) ON p.unique_obr_num=res.unique_obr_num
+  LEFT JOIN dwh. data_appointment app  ON ord.enc_id = app.enc_id
+  LEFT JOIN dwh.data_person_nd_month per ON (ord.person_id = per.person_id AND per.first_mon_date=CAST(CONVERT(CHAR(6),ord.create_timestamp,112)+'01' AS date))
+  LEFT JOIN dwh.data_provider prov ON prov.provider_id=ord.ordering_provider
+  LEFT JOIN dwh.data_user_v2 creat   ON creat.user_id=ord.created_by
+  LEFT JOIN dwh.data_user_v2 mod  ON mod.user_id=ord.modified_by
+  WHERE res.modify_timestamp >= (GETDATE() - 1) --Pull only Results or Orders modified within the last 24 hours
+  OR ord.modify_timestamp >= (GETDATE() - 1)
+
+
 
 
   --Add a primary key, calculate ranges for the chronic conditions we are currently tracking
   SELECT
-	IDENTITY (INT,1,1) AS lab_res_key,
 	res.*,
 	CASE
 		WHEN res.cleaned_value IS NOT NULL THEN CAST(res.cleaned_value AS VARCHAR) + ' ' + res.units
@@ -221,6 +233,18 @@ SELECT
 		ELSE 0
 	END
 		AS pre_diab_flag ,
+	 CASE
+		WHEN res.clinical_name like 'HIV%'
+		and res.observ_value like '%POSITIVE%' THEN 'HIV Positive'
+		WHEN result_desc LIKE 'HIV%'
+			AND (observ_value LIKE 'Reactive' 
+			OR observ_value LIKE '%dly reactive' --Both Reapeatedly and rptdly show up in results
+			OR observ_value LIKE 'INCONCLUSIVE') THEN 'HIV Preliminary Positive'
+		WHEN result_desc LIKE '%a1c%'
+			AND res.cleaned_value < 6.6
+			AND res.cleaned_value >= 5.8 THEN 'Diabetes'
+	END
+		AS lab_result_dx,
 	CASE 
 		WHEN res.obs_id IS NOT NULL THEN ROW_NUMBER() OVER ( PARTITION BY res.person_key, res.obs_id ORDER BY res.result_date DESC ) 
 		ELSE NULL
@@ -233,20 +257,14 @@ SELECT
 		ELSE 0
 	END
 		AS count_distinct_order 
-  INTO #lab_final
+  INTO #lab_range
   FROM #temp_lab res
 
 	-- Final step creates dwh table and adds type/range columns to hold the values we are tracking, instead of individual columns for each type
 	--Also adds our own tracking flag for complete, based off whether a result exists for a given order. For comparison against NG
     SELECT 
+		IDENTITY(INT,1,1) AS lab_order_key,
 		f.*,
-		CASE
-			WHEN f.hiv_pos_res = 1 THEN 'HIV Positive'
-			WHEN f.pre_diab_flag = 1 THEN 'Diabetes'
-			WHEN f.hiv_inc_res = 1 THEN 'HIV Preliminary Positive'
-			ELSE NULL
-		END 
-			AS lab_result_dx,
 		CASE
 			WHEN f.cd4_cell_range IS NOT NULL THEN 'CD4 Cells'
 			WHEN f.hb_a1c_range IS NOT NULL THEN 'Hemoglobin A1C'
@@ -265,12 +283,202 @@ SELECT
 			ELSE 0
 		END
 			AS count_complete_order
-  INTO dwh.data_labs
-  FROM #lab_final f
+  INTO #lab_final
+  FROM #lab_range f
+
+
+--Remove any lab row which has a corresponding order_num in the temp table, so no duplicates occur
+ DELETE FROM dwh.data_labs WHERE order_num IN (SELECT order_num FROM #lab_final)
+
+ --Insert all the updated rows into the dwh table
+ INSERT INTO dwh.data_labs
+         ( lab_ord_key,
+           enc_appt_key ,
+           per_mon_id ,
+           person_key ,
+           ordering_prov_key ,
+           ordering_prov_id ,
+           ordering_provider_name ,
+           create_user_key ,
+           create_user_id ,
+           create_user_name ,
+           mod_user_id ,
+           mod_user_key ,
+           mod_user_name ,
+           order_num ,
+           test_status ,
+           ngn_status ,
+           test_desc ,
+           ord_delete_ind ,
+           order_control ,
+           order_priority ,
+           time_entered ,
+           spec_action_code ,
+           billing_type ,
+           clinical_info ,
+           cancel_reason ,
+           ufo_num ,
+           lab_id ,
+           order_create_date ,
+           order_modify_date ,
+           generated_by ,
+           order_type ,
+           documents_ind ,
+           intrf_msg ,
+           ng_completed_ind ,
+           hiv_test_count ,
+		   test_ordered,
+           unique_obr_num ,
+           value_type ,
+           obs_id ,
+           loinc_code ,
+           observ_value ,
+           cleaned_value ,
+           units ,
+           ref_range ,
+           abnorm_flags ,
+           nature_abnorm_chk1 ,
+           observ_result_stat ,
+           last_change_dt ,
+           obs_date_time ,
+           prod_id_code1 ,
+           prod_id_code1_txt ,
+           signed_off_ind ,
+           result_desc ,
+           res_delete_ind ,
+           comment_ind ,
+           result_seq_num ,
+           created_by ,
+           result_date ,
+           modified_by ,
+           result_mod_date ,
+           clinical_name ,
+           units_batt_id ,
+           hiv_pos_res ,
+           hiv_inc_res ,
+           t_cell_test ,
+           order_rank ,
+           value_long ,
+           cd4_cell_range ,
+           hb_a1c_range ,
+           pre_diab_flag ,
+           Recency ,
+           count_distinct_order ,
+           lab_result_dx ,
+           type ,
+           range ,
+           count_complete_order
+         )
+SELECT
+		lab_order_key,
+		 enc_appt_key ,
+          per_mon_id ,
+          person_key ,
+          ordering_prov_key ,
+          ordering_prov_id ,
+          ordering_provider_name ,
+          create_user_key ,
+          create_user_id ,
+          create_user_name ,
+          mod_user_id ,
+          mod_user_key ,
+          mod_user_name ,
+          order_num ,
+          test_status ,
+          ngn_status ,
+          test_desc ,
+          ord_delete_ind ,
+          order_control ,
+          order_priority ,
+          time_entered ,
+          spec_action_code ,
+          billing_type ,
+          clinical_info ,
+          cancel_reason ,
+          ufo_num ,
+          lab_id ,
+          order_create_date ,
+          order_modify_date ,
+          generated_by ,
+		  order_type,
+          documents_ind ,
+          intrf_msg ,
+		  ng_completed_ind,
+		  hiv_test_count,
+		  test_ordered,
+          unique_obr_num ,
+          value_type ,
+          obs_id ,
+          loinc_code ,
+          observ_value ,
+		  cleaned_value,
+          units ,
+          ref_range ,
+          abnorm_flags ,
+          nature_abnorm_chk1 ,
+          observ_result_stat ,
+          last_change_dt ,
+          obs_date_time ,
+          prod_id_code1 ,
+          prod_id_code1_txt ,
+          signed_off_ind ,
+          result_desc ,
+          res_delete_ind ,
+          comment_ind ,
+          result_seq_num ,
+          created_by ,
+          result_date ,
+          modified_by ,
+          result_mod_date ,
+          clinical_name ,
+          units_batt_id ,
+		  hiv_pos_res,
+		  hiv_inc_res,
+		  t_cell_test,
+          order_rank,
+		  value_long,
+		  cd4_cell_range,
+		  hb_a1c_range,
+		  pre_diab_flag,
+		  Recency,
+		  count_distinct_order,
+		  lab_result_dx,
+		  type,
+		  range,
+		  count_complete_order
+FROM #lab_final
+
+
+--Each order_num is given a new order key to be used in the next step
+SELECT 
+	IDENTITY(INT,1,1) AS order_key_new,
+	order_num
+into #rekey
+FROM dwh.data_labs
 
 
 
-  END
+--All the keys need to be updated as the tables they come from are rebuilt daily
+UPDATE lab 
+	SET 
+		lab.lab_ord_key = r.order_key_new, --Orders wil be updated with a new unique order key
+		lab.enc_appt_key = app.enc_appt_key,
+       lab.per_mon_id=per.per_mon_id,
+	   lab.person_key =per.person_key,
+	   lab.ordering_prov_key = prov.provider_key ,
+	   lab.ordering_provider_name=prov.FullName,
+	   lab.create_user_key=creat.user_key,
+	   lab.create_user_name=creat.FullName ,
+	   lab.mod_user_key=mod.user_key,
+	   lab.mod_user_name=mod.FullName
+FROM dwh.data_labs lab
+LEFT JOIN #rekey r ON r.order_num = lab.order_num
+LEFT JOIN dwh.data_appointment app ON app.enc_id=lab.enc_id
+LEFT JOIN dwh.data_person_dp_month per ON (per.person_id=lab.person_id AND per.first_mon_date=CAST(CONVERT(CHAR(6),lab.order_create_date,112)+'01' AS date))
+LEFT JOIN dwh.data_provider prov ON prov.provider_id=lab.ordering_prov_id
+LEFT JOIN dwh.data_user_v2 creat   ON creat.user_id=lab.create_user_id
+LEFT JOIN dwh.data_user_v2 mod  ON mod.user_id=lab.mod_user_id
 
 
+END
 GO

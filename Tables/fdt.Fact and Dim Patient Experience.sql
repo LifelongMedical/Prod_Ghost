@@ -4,6 +4,7 @@ CREATE TABLE [fdt].[Fact and Dim Patient Experience]
 [Enc Nbr] [numeric] (18, 0) NULL,
 [enc_appt_key] [int] NOT NULL,
 [Location] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[survey_critical] [int] NOT NULL,
 [Survey Q1] [decimal] (18, 0) NULL,
 [Survey Q2] [decimal] (18, 0) NULL,
 [Survey Q3] [decimal] (18, 0) NULL,
@@ -11,6 +12,7 @@ CREATE TABLE [fdt].[Fact and Dim Patient Experience]
 [Survey Q5] [decimal] (18, 0) NULL,
 [Survey Q6] [decimal] (18, 0) NULL,
 [Survey Q7] [decimal] (18, 0) NULL,
+[Survey Critical] [int] NOT NULL,
 [Value Q1] [int] NULL,
 [Value Q2] [int] NULL,
 [Value Q3] [int] NULL,
@@ -30,6 +32,7 @@ CREATE TABLE [fdt].[Fact and Dim Patient Experience]
 [Created] [datetime] NULL
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 ALTER TABLE [fdt].[Fact and Dim Patient Experience] ADD 
-CONSTRAINT [PK__Fact and__61E7930D88989CAD] PRIMARY KEY CLUSTERED  ([survey_key]) ON [PRIMARY]
+CONSTRAINT [PK__Fact and__61E7930DC1485418] PRIMARY KEY CLUSTERED  ([survey_key]) ON [PRIMARY]
+
 
 GO

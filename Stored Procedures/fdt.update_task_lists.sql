@@ -40,8 +40,11 @@ BEGIN
 	
 	SELECT  [task_key] = IDENTITY( INT,1,1 )
 		   ,task_to_user_key
-		   ,task_from_user_key
+		   ,task_from_user_key,
+		   provider_key
       ,[create_timestamp] AS [Created Date]
+	  ,create_datetime AS [Created Datetime]
+	  ,[Complete datetime] AS [Completed Datetime]
       ,[Task_completed] AS [Task Completed]
 		  ,[Task_Assigned] AS [Task Assigned]
 		  ,[Task_Read] AS [Task Read]

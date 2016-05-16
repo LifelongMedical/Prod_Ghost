@@ -359,6 +359,9 @@ ADD CONSTRAINT slot_key_pk4 PRIMARY KEY ([slot_key]);
 				pay2_finclass [Payer 2 Financial Class],
 				pay3_name [Payer 3 Name],
 				pay3_finclass [Payer 3 Financial Class],
+				diagnosis_1 AS [Diagnosis 1],
+				diagnosis_2 AS [Diagnosis 2],
+				diagnosis_3 AS [Diagnosis 3],
 				appt_date_last [Date of Last Appointment],
 				enc_date_last [Date of Last Encounter]
               

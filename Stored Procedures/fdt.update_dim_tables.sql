@@ -716,6 +716,7 @@ AS
                 alt_phone AS [Alternate Phone Number] ,
                 marital_status AS [Marital Status] ,
                 race AS [Race] ,
+				ethnicity AS [Ethnicity],
                 language AS [Language] ,
                 med_rec_nbr AS [Medical Record Number],
 				[Address Full],
@@ -852,7 +853,7 @@ AS
                 alt_phone AS [Alternate Phone Number] ,
                 marital_status AS [Marital Status] ,
                 race AS [Race] ,
-
+				ethnicity AS [Ethnicity],
                 med_rec_nbr AS [Medical Record Number],
 				[Address Full],
 				

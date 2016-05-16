@@ -38,6 +38,7 @@ CREATE TABLE [dwh].[data_labs]
 [intrf_msg] [varchar] (255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [ng_completed_ind] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [hiv_test_count] [int] NOT NULL,
+[test_ordered] [varchar] (5) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [unique_obr_num] [uniqueidentifier] NULL,
 [value_type] [varchar] (3) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [obs_id] [varchar] (250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,

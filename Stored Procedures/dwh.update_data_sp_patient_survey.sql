@@ -45,6 +45,19 @@ SELECT
 	/*
 	Values are defined by Quality Dept. as 1 = 0, 2 = 33, 3 = 67, 4 = 100
 	*/
+	CASE 
+
+	WHEN e.survey_q1 IN (1) or
+	     e.survey_q2 IN (1) or
+		 e.survey_q3 IN (1) or
+		 e.survey_q4 IN (1) or
+         e.survey_q5 IN (1) or
+         e.survey_q6 IN (1) or
+         e.survey_q7 IN (0,1,2,3) 
+         THEN 1
+		 ELSE 0
+		 END AS survey_critical,
+
 		CASE
 		WHEN e.survey_q1 = 1 THEN 0
 		WHEN e.survey_q1 = 2 THEN 33

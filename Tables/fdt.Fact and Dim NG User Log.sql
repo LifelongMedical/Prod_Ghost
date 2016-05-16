@@ -1,6 +1,5 @@
-CREATE TABLE [dwh].[data_ng_user_log]
+CREATE TABLE [fdt].[Fact and Dim NG User Log]
 (
-[sig_event_id] [uniqueidentifier] NOT NULL,
 [Log Valid] [int] NOT NULL,
 [user_key] [int] NULL,
 [provider_id] [uniqueidentifier] NULL,
@@ -15,7 +14,6 @@ CREATE TABLE [dwh].[data_ng_user_log]
 [Start Time] [time] NULL,
 [End Time] [time] NULL,
 [Logout Time] [time] NULL,
-[row_number_enc_id] [bigint] NULL,
 [Max Hour] [int] NULL,
 [Max Minutes] [int] NULL,
 [Sum Hour] [int] NULL,

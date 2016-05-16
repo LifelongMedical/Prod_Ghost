@@ -5,6 +5,7 @@ CREATE TABLE [dwh].[data_diagnosis_problem]
 [person_key] [int] NULL,
 [enc_appt_key] [int] NULL,
 [enc_id] [uniqueidentifier] NULL,
+[enc_id_ecw] [int] NULL,
 [person_id] [uniqueidentifier] NULL,
 [person_id_ecw] [int] NULL,
 [icd_code] [varchar] (10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,

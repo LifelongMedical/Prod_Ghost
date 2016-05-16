@@ -42,6 +42,7 @@ CREATE TABLE [fdt].[Dim PHI Patient]
 [Alternate Phone Number] [varchar] (15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Marital Status] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Race] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Ethnicity] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Language] [varchar] (8000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Medical Record Number] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Address Full] [varchar] (174) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
@@ -54,5 +55,6 @@ CREATE TABLE [fdt].[Dim PHI Patient]
 ) ON [PRIMARY]
 ALTER TABLE [fdt].[Dim PHI Patient] ADD 
 CONSTRAINT [per_mon_id_pk5] PRIMARY KEY CLUSTERED  ([per_mon_id]) ON [PRIMARY]
+
 
 GO

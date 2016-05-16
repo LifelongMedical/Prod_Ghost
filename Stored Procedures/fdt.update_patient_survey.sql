@@ -1,3 +1,4 @@
+
 SET QUOTED_IDENTIFIER ON
 GO
 SET ANSI_NULLS ON
@@ -26,6 +27,7 @@ DROP TABLE [fdt].[Fact and Dim Patient Experience]
       ,sur.[enc_num] AS [Enc Nbr]
       ,sur.[enc_appt_key]
 	  ,loc.location_mstr_name AS Location
+	  ,sur.survey_critical
       ,sur.[survey_q1] AS [Survey Q1]
       ,sur.[survey_q2]  AS [Survey Q2]
       ,sur.[survey_q3]  AS [Survey Q3]
@@ -33,6 +35,7 @@ DROP TABLE [fdt].[Fact and Dim Patient Experience]
       ,sur.[survey_q5] AS  [Survey Q5]
       ,sur.[survey_q6]  AS [Survey Q6]
       ,sur.[survey_q7]  AS [Survey Q7]
+	  ,sur.[survey_critical] AS [Survey Critical]
       ,sur.[q1_val] AS [Value Q1]
       ,sur.[q2_val]  AS [Value Q2]
       ,sur.[q3_val]  AS [Value Q3]

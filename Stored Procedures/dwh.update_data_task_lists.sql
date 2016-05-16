@@ -50,8 +50,9 @@ BEGIN
                                 CAST(ut1.created_by AS VARCHAR(36)) AS task_from_user_id_vchar ,
                                 CAST(ut1.create_timestamp AS DATE) create_timestamp,-- when created
 								--,ut1.modify_timestamp -- likely when it was addressed
-                                DATEDIFF(hh, ut1.create_timestamp, ut1.modify_timestamp) AS [HourstoCompeletion] ,
-                                DATEDIFF(DAY, ut1.create_timestamp, ut1.modify_timestamp) AS [DaystoCompeletion] ,
+                                CAST( DATEDIFF(MINUTE, ut1.create_timestamp, ut1.modify_timestamp) AS DECIMAL)/60 AS [HourstoCompeletion] ,
+                                CAST(DATEDIFF(MINUTE, ut1.create_timestamp, ut1.modify_timestamp) AS DECIMAL)/(60*24) AS [DaystoCompeletion] ,
+								ut1.modify_timestamp AS [Complete Datetime],
                                 ut1.task_completed ,
                                 ut1.task_assgn ,
                                 ut1.read_flag ,
@@ -60,6 +61,8 @@ BEGIN
                                 ut1.task_desc ,
                                 ut1.task_subj, -- what its for? --,per.last_name
                                 ( CASE WHEN ISDATE(ut1.create_timestamp) = 1 THEN CAST(ut1.create_timestamp AS DATE)  END ) AS create_date ,
+								( CASE WHEN ISDATE(ut1.create_timestamp) = 1 THEN CAST(ut1.create_timestamp AS DATETIME)  END ) AS create_datetime ,
+
                                 pe.location_id
                        FROM     [10.183.0.94].NGProd.dbo.user_todo_list ut1
                                 LEFT JOIN [10.183.0.94].NGProd.dbo.patient_encounter pe (NOLOCK) ON pe.enc_id = ut1.pat_enc_id
@@ -76,6 +79,8 @@ BEGIN
               --  t.pat_enc_id AS enc_id ,
               --  t.[task_id] AS NG_task_id ,
                 t.create_timestamp ,
+				t.create_datetime,
+				t.[Complete Datetime],
                 t.task_from_user_id ,
                 t.task_to_user_id,
 				t.[HourstoCompeletion],
@@ -139,11 +144,13 @@ BEGIN
                           OR CONCAT(task_desc, ' ', task_subj) LIKE '%xry%' THEN 'Imaging'					 
 					 ELSE 'Other'
                 END AS Request_Type
-				,CASE WHEN t.task_completed=1 THEN 0 ELSE 1 END AS [Nbr of active Inbox]
+				,CASE WHEN t.task_completed=1 THEN 0 ELSE 1 END AS [Nbr of active Inbox],
+				prov.provider_key
       INTO    dwh.data_task_lists
         FROM    TasksRaw t
 			LEFT OUTER JOIN dwh.data_user_v2 userto WITH (NOLOCK) ON t.task_to_user_id = userto.user_id
 			LEFT OUTER JOIN dwh.data_user_v2 userfrom WITH (NOLOCK) ON t.task_from_user_id = userfrom.user_id
+			LEFT OUTER JOIN dwh.data_provider prov WITH (NOLOCK) ON t.task_to_user_id = prov.user_id
 		--	LEFT OUTER JOIN [dwh].[data_appointment] data_appointment WITH (NOLOCK) ON data_appointment.[enc_id] = t.pat_enc_id
                                                         
  

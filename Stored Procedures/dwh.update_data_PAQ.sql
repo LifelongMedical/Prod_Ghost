@@ -836,8 +836,8 @@ select q.[item_type]
       ,q.[signoffdate]
       ,q.[signoff_timestamp]
       ,q.[Item Creation Date]
-      ,DATEDIFF(hh, q.[Item Creation Date],q.modify_timestamp)  AS HourstoCompeletion
-	  ,DATEDIFF(DAY,q.[Item Creation Date],q.modify_timestamp)  AS DaystoCompeletion
+      ,CAST(DATEDIFF(MINUTE, q.[Item Creation Date],q.modify_timestamp) AS decimal )/(60) AS HourstoCompeletion
+	  ,CAST(DATEDIFF(MINUTE,q.[Item Creation Date],q.modify_timestamp) AS decimal)/(24*60)  AS DaystoCompeletion
       ,q.[active]
       ,q.[nbr_PAQ_by_Provider]
       ,q.[nbr_PAQ_by_Covering_Provider]

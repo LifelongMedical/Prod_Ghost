@@ -34,6 +34,7 @@ CREATE TABLE [fdt].[Dim PHI Patient Quality]
 [Alternate Phone Number] [varchar] (15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Marital Status] [varchar] (1) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Race] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Ethnicity] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Medical Record Number] [varchar] (30) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Address Full] [varchar] (174) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Last Appointment Date] [date] NULL,

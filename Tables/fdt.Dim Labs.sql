@@ -7,6 +7,7 @@ CREATE TABLE [fdt].[Dim Labs]
 [ordering_prov_key] [int] NULL,
 [create_user_key] [int] NULL,
 [mod_user_key] [int] NULL,
+[Order Type] [varchar] (5) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 [Order Status] [varchar] (40) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [NG Order Status] [varchar] (12) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Description] [varchar] (255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,

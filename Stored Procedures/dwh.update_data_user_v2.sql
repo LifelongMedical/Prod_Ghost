@@ -314,7 +314,7 @@ res.phys_id,
 
 SELECT u.*, 1 AS ng_data INTO dwh.data_user_v2 FROM #user u 
 
-SELECT p.*,user_key, ROW_NUMBER() OVER(PARTITION BY p.provider_id ORDER BY (SELECT NULL)) AS rownum INTO #provider3 FROM #provider2 p LEFT JOIN  dwh.data_user_v2 u ON p.provider_id=u.self_provider_id 
+SELECT p.*,user_key, user_id, ROW_NUMBER() OVER(PARTITION BY p.provider_id ORDER BY (SELECT NULL)) AS rownum INTO #provider3 FROM #provider2 p LEFT JOIN  dwh.data_user_v2 u ON p.provider_id=u.self_provider_id 
 
 SELECT IDENTITY( INT, 1, 1 )  AS provider_key, * INTO dwh.data_provider FROM #provider3 WHERE rownum <2
 
@@ -356,8 +356,12 @@ LEFT JOIN dwh.data_employee_v2 ar ON REPLACE(UPPER(LEFT(us.first_name, 3)), ''''
 Insertion of ECW provider data
 */
 ALTER TABLE dwh.data_provider ALTER COLUMN provider_id UNIQUEIDENTIFIER NULL
-ALTER TABLE dwh.data_provider ALTER COLUMN first_name VARCHAR(50)
-ALTER TABLE dwh.data_provider ALTER COLUMN last_name VARCHAR(50)
+ALTER TABLE dwh.data_provider ALTER COLUMN first_name VARCHAR(60) 
+ALTER TABLE dwh.data_provider ALTER COLUMN last_name VARCHAR(60) 
+ALTER TABLE dwh.data_provider ALTER COLUMN FullName VARCHAR(121) 
+ALTER TABLE dwh.data_provider ALTER COLUMN provider_name VARCHAR(121) 
+ALTER TABLE dwh.data_provider ALTER COLUMN last_name VARCHAR(60) 
+ALTER TABLE dwh.data_provider ALTER COLUMN last_name VARCHAR(60) 
 ALTER TABLE dwh.data_provider ADD ecw_provider_key INT null
 
   INSERT INTO dwh.data_provider
@@ -375,12 +379,12 @@ ALTER TABLE dwh.data_provider ADD ecw_provider_key INT null
   SELECT 
 	emp .employee_key, 
 	'Provider' AS role_status, 
-	prov.provider_first_name , 
-	prov.provider_last_name,
-	prov.provider_last_name +', '+ prov.provider_first_name ,
-	prov. provider_last_name+', '+prov. provider_first_name, 
-	prov .provider_first_name, 
-	prov.provider_last_name ,
+	RTRIM(prov.provider_first_name) , 
+	RTRIM(prov.provider_last_name),
+	RTRIM(prov.provider_last_name) +', '+ RTRIM(prov.provider_first_name) ,
+	RTRIM(prov.provider_last_name) +', '+ RTRIM(prov.provider_first_name) , 
+	RTRIM(prov.provider_first_name), 
+	RTRIM(prov.provider_last_name),
     CASE
         WHEN (prov .DeleteFlag = 1 OR prov .DeleteFlag IS NULL) THEN 'Y'
         ELSE 'N'
@@ -392,6 +396,9 @@ ALTER TABLE dwh.data_provider ADD ecw_provider_key INT null
   WHERE prov.provider_first_name <> '' AND prov.provider_last_name <> ''
 
 --End ECW Insert
+
+
+
 	
 
     END;

@@ -35,6 +35,7 @@ CREATE TABLE #temp_dp(
 	[person_key] INT NULL,
 	[enc_appt_key] INT NULL,
 	[enc_id] UNIQUEIDENTIFIER NULL,
+	[enc_id_ecw] INT NULL,
 	[person_id] UNIQUEIDENTIFIER NULL,
 	[person_id_ecw] INT NULL,
 	[icd_code] VARCHAR(10) NULL,
@@ -211,6 +212,7 @@ INSERT INTO #temp_dp
           person_key ,
           enc_appt_key ,
           person_id_ecw,
+		  enc_id_ecw,
           icd_code ,
           diag_name ,
           eff_date ,
@@ -224,6 +226,7 @@ SELECT
 	app.person_key,
 	app.enc_appt_key,
 	d.person_id_ecw,
+	d.encounter_id_ecw,
 	d.icd_code_trimmed,
 	d.diagnosis_description,
 	CASE

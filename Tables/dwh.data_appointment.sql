@@ -6,6 +6,7 @@ CREATE TABLE [dwh].[data_appointment]
 [appt_loc_key] [int] NULL,
 [appt_loc_id] [uniqueidentifier] NULL,
 [enc_id] [uniqueidentifier] NULL,
+[enc_id_ecw] [int] NULL,
 [enc_loc_key] [int] NULL,
 [enc_loc_id] [uniqueidentifier] NULL,
 [enc_rendering_key] [int] NULL,
@@ -88,13 +89,21 @@ CREATE TABLE [dwh].[data_appointment]
 [enrollment_created_time] [date] NULL,
 [email_address] [varchar] (100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [email_modified_time] [date] NULL,
-[enrollment_users_match] [int] NOT NULL
+[enrollment_users_match] [int] NOT NULL,
+[diagnosis_1] [varchar] (266) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[diagnosis_2] [varchar] (266) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[diagnosis_3] [varchar] (266) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
 ) ON [PRIMARY]
 ALTER TABLE [dwh].[data_appointment] ADD 
 CONSTRAINT [enc_appt_key_PK] PRIMARY KEY CLUSTERED  ([enc_appt_key]) ON [PRIMARY]
 CREATE NONCLUSTERED INDEX [IX_person_mon_id1] ON [dwh].[data_appointment] ([per_mon_id]) ON [PRIMARY]
 
 CREATE NONCLUSTERED INDEX [IX_person_mon_x_first_mon_date1] ON [dwh].[data_appointment] ([per_mon_id], [first_mon_date]) ON [PRIMARY]
+
+
+
+
+
 
 
 

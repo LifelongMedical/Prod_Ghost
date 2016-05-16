@@ -59,9 +59,13 @@ CREATE TABLE [fdt].[Fact Encounter and Appointment]
 [Payer 2 Financial Class] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Payer 3 Name] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Payer 3 Financial Class] [varchar] (110) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Diagnosis 1] [varchar] (266) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Diagnosis 2] [varchar] (266) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+[Diagnosis 3] [varchar] (266) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 [Date of Last Appointment] [date] NULL,
 [Date of Last Encounter] [date] NULL
 ) ON [PRIMARY]
 ALTER TABLE [fdt].[Fact Encounter and Appointment] ADD 
 CONSTRAINT [enc_appt_keypk23] PRIMARY KEY CLUSTERED  ([enc_appt_key]) ON [PRIMARY]
+
 GO
